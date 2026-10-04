@@ -1,18 +1,73 @@
-/**
- * GoalCard – displays a single goal with progress bar.
- */
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { Goal } from '../types';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { NAV_COLORS as N } from '@/components/navigation/navigation-theme';
+
+import { FitnessIcon, type FitnessIconName } from './FitnessIcon';
+import {
+  ProfilePressable,
+  ProfileProgressBar,
+} from './ProfileMotion';
+
 import { useM4Theme } from '../hooks/useM4Theme';
+import type { Goal } from '../types';
 
 interface GoalCardProps {
   goal: Goal;
   onEdit?: (goal: Goal) => void;
 }
 
-export function GoalCard({ goal, onEdit }: GoalCardProps) {
+function getGoalIcon(goal: Goal): FitnessIconName {
+  switch (goal.type) {
+    case 'Workouts per week':
+      return 'workouts';
+
+    case 'Calories per week':
+      return 'flame';
+
+    case 'Workout minutes':
+      return 'clock';
+
+    case 'Monthly workouts':
+      return 'calendar';
+
+    default:
+      return 'goal';
+  }
+}
+
+function getGoalCategory(goal: Goal) {
+  switch (goal.type) {
+    case 'Workouts per week':
+      return 'WEEKLY ROUTINE';
+
+    case 'Calories per week':
+      return 'ENERGY TARGET';
+
+    case 'Workout minutes':
+      return 'TRAINING TIME';
+
+    case 'Monthly workouts':
+      return 'MONTHLY TARGET';
+
+    default:
+      return 'FITNESS GOAL';
+  }
+}
+
+export function GoalCard({
+  goal,
+  onEdit,
+}: GoalCardProps) {
   const c = useM4Theme();
+
+  const icon = getGoalIcon(goal);
+
+  const percentage = Math.max(
+    0,
+    Math.min(100, goal.progressPct),
+  );
+
+  const complete = percentage >= 100;
 
   return (
     <View
@@ -20,56 +75,176 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
         styles.card,
         {
           backgroundColor: c.cardBg,
-          borderColor: c.cardBdr,
-          shadowColor: c.teal,
+          borderColor: complete
+            ? c.teal
+            : c.cardBdr,
         },
       ]}
     >
-      <View style={styles.header}>
-        <Text style={[styles.label, { color: c.text }]} numberOfLines={2}>
-          {goal.label}
-        </Text>
-        <View style={styles.right}>
-          <Text style={[styles.pct, { color: c.teal }]}>{goal.progressPct}%</Text>
-          {onEdit && (
-            <Pressable
-              onPress={() => onEdit(goal)}
-              style={({ pressed }) => [
-                styles.editBtn,
-                {
-                  backgroundColor: pressed ? c.tealDim : c.surface,
-                  borderColor: c.border,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`Edit goal: ${goal.label}`}
-            >
-              <Text style={[styles.editText, { color: c.teal }]}>✏️</Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      {/* Progress bar track */}
-      <View style={[styles.track, { backgroundColor: c.border }]}>
+      <View style={styles.topRow}>
         <View
           style={[
-            styles.fill,
+            styles.iconTile,
             {
-              width: `${goal.progressPct}%`,
-              backgroundColor: c.teal,
+              backgroundColor: complete
+                ? c.teal
+                : c.tealDim,
             },
           ]}
-        />
+        >
+          <FitnessIcon
+            name={complete ? 'check' : icon}
+            color={complete ? N.ink : c.teal}
+            size={21}
+          />
+        </View>
+
+        <View style={styles.titleArea}>
+          <Text
+            style={[
+              styles.category,
+              {
+                color: c.muted,
+              },
+            ]}
+          >
+            {getGoalCategory(goal)}
+          </Text>
+
+          <Text
+            numberOfLines={2}
+            style={[
+              styles.title,
+              {
+                color: c.text,
+              },
+            ]}
+          >
+            {goal.label}
+          </Text>
+        </View>
+
+        {onEdit && (
+          <ProfilePressable
+            label={`Edit ${goal.label}`}
+            onPress={() => onEdit(goal)}
+            style={[
+              styles.editButton,
+              {
+                backgroundColor: c.surface,
+                borderColor: c.border,
+              },
+            ]}
+          >
+            <FitnessIcon
+              name="goal"
+              color={c.muted}
+              size={17}
+            />
+          </ProfilePressable>
+        )}
       </View>
 
+      <View style={styles.progressHeading}>
+        <View>
+          <Text
+            style={[
+              styles.progressLabel,
+              {
+                color: c.subtle,
+              },
+            ]}
+          >
+            PROGRESS
+          </Text>
+
+          <Text
+            style={[
+              styles.currentValue,
+              {
+                color: c.text,
+              },
+            ]}
+          >
+            {goal.currentValue.toLocaleString()}
+            <Text
+              style={[
+                styles.targetValue,
+                {
+                  color: c.muted,
+                },
+              ]}
+            >
+              {' '}
+              / {goal.targetValue.toLocaleString()} {goal.unit}
+            </Text>
+          </Text>
+        </View>
+
+        <Text
+          style={[
+            styles.percentage,
+            {
+              color: complete
+                ? c.teal
+                : c.text,
+            },
+          ]}
+        >
+          {percentage}%
+        </Text>
+      </View>
+
+      <ProfileProgressBar
+        value={percentage}
+        color={c.teal}
+        trackColor={c.border}
+        label={`${goal.label} progress`}
+      />
+
       <View style={styles.footer}>
-        <Text style={[styles.remaining, { color: c.muted }]}>
-          {goal.remainingLabel}
-        </Text>
-        <Text style={[styles.duration, { color: c.subtle }]}>
-          {goal.duration}
-        </Text>
+        <View style={styles.remainingRow}>
+          <FitnessIcon
+            name={complete ? 'check' : 'activity'}
+            color={complete ? c.teal : c.muted}
+            size={14}
+          />
+
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.remaining,
+              {
+                color: complete
+                  ? c.teal
+                  : c.muted,
+              },
+            ]}
+          >
+            {goal.remainingLabel}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.durationPill,
+            {
+              backgroundColor: c.surface,
+              borderColor: c.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.duration,
+              {
+                color: c.muted,
+              },
+            ]}
+          >
+            {goal.duration}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -77,68 +252,113 @@ export function GoalCard({ goal, onEdit }: GoalCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    marginBottom: 12,
+    borderRadius: 22,
     borderWidth: 1,
     padding: 16,
-    gap: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 12,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  right: {
+
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flexShrink: 0,
+    gap: 11,
   },
-  label: {
+
+  iconTile: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  titleArea: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20,
   },
-  pct: {
-    fontSize: 16,
+
+  category: {
+    fontSize: 8,
     fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 3,
   },
-  editBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+
+  title: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+
+  editButton: {
+    width: 37,
+    height: 37,
+    borderRadius: 13,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editText: {
-    fontSize: 13,
-  },
-  track: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  footer: {
+
+  progressHeading: {
+    marginTop: 18,
+    marginBottom: 10,
     flexDirection: 'row',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 10,
   },
-  remaining: {
-    fontSize: 12,
+
+  progressLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  duration: {
+
+  currentValue: {
+    marginTop: 3,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  targetValue: {
     fontSize: 11,
     fontWeight: '500',
+  },
+
+  percentage: {
+    fontSize: 19,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+
+  footer: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+
+  remainingRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  remaining: {
+    flex: 1,
+    fontSize: 10,
+  },
+
+  durationPill: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+
+  duration: {
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   segmentOrbit: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
   },
   segment: {

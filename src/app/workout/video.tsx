@@ -14,6 +14,7 @@ import {
     Card,
     Figure,
     Page,
+    c,
     s,
 } from "../../features/workout/ui";
 function Player({ exercise }: { exercise: Exercise }) {
@@ -45,8 +46,8 @@ function Player({ exercise }: { exercise: Exercise }) {
         style={{
           width: "100%",
           height: 240,
-          backgroundColor: "#152B35",
-          borderRadius: 12,
+          backgroundColor: c.surface,
+          borderRadius: 20,
         }}
       />
       {!!error && (

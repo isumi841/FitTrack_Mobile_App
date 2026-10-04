@@ -55,13 +55,13 @@ function Summary({ id }: { id: string }) {
             height: 86,
             borderRadius: 43,
             borderWidth: 2,
-            borderColor: c.teal,
-            backgroundColor: c.pale,
+            borderColor: c.accent,
+            backgroundColor: c.accentSoft,
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <Text style={{ color: c.teal, fontSize: 40 }}>
+          <Text style={{ color: c.accent, fontSize: 40 }}>
             {complete ? "✓" : "◇"}
           </Text>
         </View>
@@ -116,6 +116,7 @@ function Summary({ id }: { id: string }) {
           accessibilityLabel="Session note"
           placeholder="Add a note about this session…"
           placeholderTextColor={c.muted}
+          selectionColor={c.accent}
           value={note}
           onChangeText={(v) => {
             setNote(v);

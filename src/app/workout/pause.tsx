@@ -45,7 +45,7 @@ export default function PauseResumeScreen() {
         router.replace("/workout/details");
       }}
     >
-      <View style={{ opacity: 0.45, paddingVertical: 15 }}>
+      <View style={{ paddingVertical: 4 }}>
         <Figure id={exercises[currentIndex(session)].id} />
       </View>
       <Card>
@@ -71,11 +71,11 @@ export default function PauseResumeScreen() {
           style={{
             padding: 14,
             borderRadius: 10,
-            backgroundColor: c.pink,
+            backgroundColor: c.dangerSoft,
             gap: 6,
           }}
         >
-          <Text style={[s.smallStrong, { color: c.red }]}>
+          <Text style={[s.smallStrong, { color: c.danger }]}>
             Ending your session early?
           </Text>
           <Text style={s.body}>
@@ -84,7 +84,8 @@ export default function PauseResumeScreen() {
           </Text>
         </View>
         <Button
-          title="▷ Resume Workout"
+          title="Resume workout"
+          icon="play"
           onPress={() => {
             resume();
             router.replace("/workout/active");

@@ -1,27 +1,24 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
+ * Shared colors for the app's dark training theme.
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
+import { FITTRACK_COLORS as C } from './fittrack-theme';
+
+const appColors = {
+  text: C.text,
+  background: C.bg,
+  backgroundElement: C.surface,
+  backgroundSelected: C.surfaceRaised,
+  textSecondary: C.muted,
+};
 
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  light: appColors,
+  dark: appColors,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

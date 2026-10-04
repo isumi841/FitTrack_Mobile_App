@@ -1,4 +1,6 @@
 :root {
+  color-scheme: dark;
+  background-color: #0E1215;
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
     Segoe UI Symbol, Noto Color Emoji;

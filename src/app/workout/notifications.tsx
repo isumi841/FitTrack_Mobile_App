@@ -1,11 +1,13 @@
 import { router } from "expo-router";
 import { Text, View } from "react-native";
+import { NavigationIcon } from '@/components/navigation/navigation-icon';
 import { useWorkout } from "../../features/workout/store";
 import {
     Badge,
     Button,
     Card,
     Page,
+    c,
     s,
 } from "../../features/workout/ui";
 export default function NotificationsScreen() {
@@ -26,6 +28,7 @@ export default function NotificationsScreen() {
       )}
       {data.notices.length === 0 && (
         <Card>
+          <View style={{ alignSelf: 'center', padding: 20, backgroundColor: c.accentSoft, borderRadius: 28 }}><NavigationIcon name="bell" size={32} color={c.accent} /></View>
           <Text style={s.heading}>You’re all caught up</Text>
           <Text style={s.body}>
             Finish or end a workout to receive a session notification.

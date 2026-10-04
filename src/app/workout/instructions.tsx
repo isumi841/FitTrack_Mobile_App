@@ -9,6 +9,7 @@ import {
     Card,
     Figure,
     Page,
+    c,
     s,
 } from "../../features/workout/ui";
 export default function ExerciseInstructionsScreen() {
@@ -66,7 +67,8 @@ function Instructions({ id }: { id: string }) {
         <TextInput
           accessibilityLabel="My exercise note"
           placeholder="Add a reminder for next time…"
-          placeholderTextColor="#667A88"
+          placeholderTextColor={c.muted}
+          selectionColor={c.accent}
           multiline
           maxLength={500}
           value={note}

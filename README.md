@@ -4,6 +4,24 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
+### Workout screens (Member 3)
+
+The entry route opens `/workout/details`. All eight workout screens use the dark
+and lime palette in `src/constants/fittrack-theme.ts`, with shared controls in
+`src/features/workout/ui.tsx`.
+
+The floating dock lives in the workout layout so it stays mounted between screens.
+Its destinations and quick actions are configured in
+`src/components/navigation/navigation-config.ts`. This branch links to Workouts,
+Guide, Timer, and Inbox. Replace that configuration with the team's Home,
+Workouts, Progress, and Profile destinations once those routes are merged;
+`/member4/*` routes are not included here. The center button opens quick actions.
+Opening quick actions or leaving a session pauses it; switching from the guided
+view to the timer keeps it running.
+
+Run `npx expo lint` and `npx tsc --noEmit` to validate changes. On PowerShell with
+script execution disabled, use `npx.cmd` in place of `npx`.
+
 1. Install dependencies
 
    ```bash

@@ -52,7 +52,7 @@ export function SessionScreen({ timer = false }: { timer?: boolean }) {
           style={{
             height: 5,
             width: `${(session.completedSets / 15) * 100}%`,
-            backgroundColor: c.teal,
+            backgroundColor: c.accent,
           }}
         />
       </View>
@@ -116,7 +116,7 @@ export function SessionScreen({ timer = false }: { timer?: boolean }) {
             </View>
           </View>
           <Card tinted>
-            <Text style={[s.label, { textAlign: "center", color: c.teal }]}>
+            <Text style={[s.label, { textAlign: "center", color: c.accent }]}>
               {rest ? "RECOVERY REMAINING" : "FOCUS REMAINING"}
             </Text>
             <Text style={[s.digits, { textAlign: "center" }]}>

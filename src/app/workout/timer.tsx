@@ -5,8 +5,10 @@ import { SessionScreen } from "../../features/workout/session-screen";
 import { useWorkout } from "../../features/workout/store";
 import {
     Button,
+    Badge,
     Card,
     Page,
+    c,
     s,
 } from "../../features/workout/ui";
 export default function WorkoutTimerScreen() {
@@ -40,6 +42,7 @@ function Settings() {
   return (
     <Page title="Workout Timer">
       <Card>
+        <Badge>YOUR PACE / YOUR ROUTINE</Badge>
         <Text style={s.title}>Find your rhythm</Text>
         <Text style={s.body}>
           Set movement and recovery time for your next session. The default
@@ -48,22 +51,24 @@ function Settings() {
         <Text style={s.smallStrong}>Movement (seconds)</Text>
         <TextInput
           accessibilityLabel="Movement seconds"
+          selectionColor={c.accent}
           keyboardType="number-pad"
           value={work}
-          onChangeText={setWork}
+          onChangeText={(value) => { setWork(value); setMessage(''); }}
           style={s.input}
           maxLength={3}
         />
         <Text style={s.smallStrong}>Recovery (seconds)</Text>
         <TextInput
           accessibilityLabel="Recovery seconds"
+          selectionColor={c.accent}
           keyboardType="number-pad"
           value={rest}
-          onChangeText={setRest}
+          onChangeText={(value) => { setRest(value); setMessage(''); }}
           style={s.input}
           maxLength={3}
         />
-        <Button title="Save timer settings" onPress={save} />
+        <Button title="Save timer settings" icon="check" onPress={save} />
         <Button
           title="Restore 40s / 20s defaults"
           secondary

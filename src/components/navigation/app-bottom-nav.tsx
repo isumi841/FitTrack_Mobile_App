@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
       default: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
     }),
   },
-  topShine: { pointerEvents: 'none', position: 'absolute', top: 0, left: 28, right: 28, height: 1, backgroundColor: 'rgba(233,249,207,0.12)' },
+  topShine: { pointerEvents: 'none', position: 'absolute', top: 0, left: 28, right: 28, height: 1, backgroundColor: C.border },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 76 },
   item: { flex: 1, minHeight: 68, paddingTop: 12, paddingBottom: 6, gap: 4, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
   itemPressed: { backgroundColor: 'rgba(255,255,255,0.04)' },
@@ -165,9 +165,9 @@ const styles = StyleSheet.create({
   addTouchTarget: { minWidth: 56, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
   addButton: {
     width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.accent, borderWidth: 1, borderColor: '#E8FF99',
+    backgroundColor: C.accent, borderWidth: 1, borderColor: C.accent,
     ...Platform.select({
-      web: { boxShadow: '0 3px 12px rgba(212,249,85,0.3)' },
+      web: { boxShadow: `0 3px 12px ${C.accentGlow}` },
       default: { shadowColor: C.accent, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
     }),
   },

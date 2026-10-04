@@ -22,12 +22,15 @@ export const APP_NAV_ITEMS: readonly NavigationItem[] = [
     id: 'progress', label: 'Progress', icon: 'progress', href: '/member4/progress',
     matchPaths: [
       '/member4', '/member4/progress', '/member4/progress-details',
-      '/member4/goals', '/member4/achievements', '/member4/workout-reminder',
     ],
   },
   {
     id: 'profile', label: 'Profile', icon: 'profile',
-    href: '/member4/edit-profile', matchPaths: ['/member4/edit-profile'],
+    href: '/member4/profile',
+    matchPaths: [
+      '/member4/profile', '/member4/edit-profile', '/member4/goals',
+      '/member4/achievements', '/member4/workout-reminder',
+    ],
   },
 ];
 

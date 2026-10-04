@@ -58,7 +58,7 @@ export default function EditProfileScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.navigate('/member4/progress');
+      router.navigate('/member4/profile');
     }
   }
 

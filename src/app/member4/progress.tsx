@@ -52,7 +52,7 @@ export default function ProgressScreen() {
           <Text style={[styles.headerName, { color: c.text }]}>Nimal</Text>
         </View>
         <Pressable
-          onPress={() => router.push('/member4/edit-profile')}
+          onPress={() => router.push('/member4/profile')}
           style={({ pressed }) => [
             styles.avatarBtn,
             {
@@ -77,7 +77,7 @@ export default function ProgressScreen() {
           <View style={styles.heroLeft}>
             <Text style={styles.heroLabel}>CURRENT STREAK</Text>
             <Text style={styles.heroStreak}>{stats.streakDays} Days 🔥</Text>
-            <Text style={styles.heroSub}>Keep it up — you're on fire!</Text>
+            <Text style={styles.heroSub}>Keep it up — you’re on fire!</Text>
           </View>
           <View style={[styles.heroBadge, { backgroundColor: 'rgba(0,0,0,0.18)' }]}>
             <Text style={styles.heroBadgeIcon}>🏅</Text>
@@ -243,34 +243,6 @@ export default function ProgressScreen() {
 
           {mockRecentWorkouts.map((w) => (
             <WorkoutHistoryCard key={w.id} item={w} />
-          ))}
-        </View>
-
-        {/* ── Quick Actions Grid ── */}
-        <Text style={[styles.sectionTitle, { color: c.text, marginBottom: 12, marginTop: 8 }]}>Quick Actions</Text>
-        <View style={styles.quickGrid}>
-          {[
-            { label: 'Goals', emoji: '🎯', route: '/member4/goals' },
-            { label: 'Badges', emoji: '🏆', route: '/member4/achievements' },
-            { label: 'Remind', emoji: '🔔', route: '/member4/workout-reminder' },
-            { label: 'Profile', emoji: '👤', route: '/member4/edit-profile' },
-          ].map((item) => (
-            <Pressable
-              key={item.route}
-              onPress={() => router.push(item.route as Parameters<typeof router.push>[0])}
-              style={({ pressed }) => [
-                styles.quickCard,
-                {
-                  backgroundColor: pressed ? c.tealDim : c.cardBg,
-                  borderColor: c.cardBdr,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={item.label}
-            >
-              <Text style={styles.quickCardEmoji}>{item.emoji}</Text>
-              <Text style={[styles.quickCardLabel, { color: c.text }]}>{item.label}</Text>
-            </Pressable>
           ))}
         </View>
 
@@ -440,25 +412,4 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontWeight: '700' },
 
-  // Quick actions grid
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  quickCard: {
-    width: '47%',
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    gap: 8,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  quickCardEmoji: { fontSize: 28 },
-  quickCardLabel: { fontSize: 13, fontWeight: '700' },
 });

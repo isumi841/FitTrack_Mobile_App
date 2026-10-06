@@ -1,9 +1,39 @@
 :root {
+  --c-bg: #080e0e;
+  --c-bg2: #0a1212;
+  --c-surface: rgba(255, 255, 255, 0.04);
+  --c-border: rgba(255, 255, 255, 0.07);
+  --c-border-h: rgba(82, 196, 168, 0.45);
+  --c-teal: #52c4a8;
+  --c-teal-dim: rgba(82, 196, 168, 0.18);
+  --c-teal-glow: rgba(82, 196, 168, 0.35);
+  --c-text: #e8f0ef;
+  --c-muted: rgba(232, 240, 239, 0.55);
+  --c-subtle: rgba(232, 240, 239, 0.32);
+  --c-card-bg: rgba(255, 255, 255, 0.05);
+  --c-card-bdr: rgba(255, 255, 255, 0.09);
+  --font: 'Inter', -apple-system, sans-serif;
   --font-display:
-    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-    Segoe UI Symbol, Noto Color Emoji;
+    'Inter', -apple-system, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
+    Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+[data-theme="light"] {
+  --c-bg: #f0f7f6;
+  --c-bg2: #e6f3f1;
+  --c-surface: rgba(255, 255, 255, 0.85);
+  --c-border: rgba(82, 196, 168, 0.18);
+  --c-border-h: rgba(82, 196, 168, 0.55);
+  --c-teal: #3a9e88;
+  --c-teal-dim: rgba(82, 196, 168, 0.15);
+  --c-teal-glow: rgba(82, 196, 168, 0.25);
+  --c-text: #0a1212;
+  --c-muted: #3d5c57;
+  --c-subtle: #679288;
+  --c-card-bg: rgba(255, 255, 255, 0.9);
+  --c-card-bdr: rgba(82, 196, 168, 0.2);
 }

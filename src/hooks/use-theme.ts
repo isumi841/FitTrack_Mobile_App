@@ -3,12 +3,14 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { usePathname } from "expo-router";
+import { Colors, HomeColors } from "@/constants/theme";
+import { isWorkoutRoute } from "@/constants/navigation-config";
+import { useMember } from "@/providers/member-state";
 
 export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+  const pathname = usePathname();
+  const { dark } = useMember();
+  if (pathname === "/" || isWorkoutRoute(pathname)) return HomeColors;
+  return Colors[dark ? "dark" : "light"];
 }

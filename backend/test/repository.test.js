@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import mongoose from 'mongoose';
+import { createDatabase } from '../src/database.js';
+import { SESSION_COLLECTION } from '../src/session-repository.js';
+
+test('repository uses the database-owned Mongoose instance and only the explicit collection', async () => {
+  const odm = new mongoose.Mongoose();
+  const db = createDatabase({ odm });
+  const repo = db.createSessionRepository();
+  const model = odm.models.WorkoutSession;
+  assert.ok(model); assert.equal(model.db, odm.connection);
+  assert.equal(mongoose.models.WorkoutSession, undefined);
+  assert.equal(SESSION_COLLECTION, 'workoutsessions');
+  assert.equal(model.collection.name, SESSION_COLLECTION);
+  assert.equal(model.schema.options.autoIndex, false);
+  assert.equal(model.schema.options.autoCreate, false);
+  const seen = [];
+  model.collection.createIndex = async fields => seen.push(['index', fields]);
+  model.findOne = filter => ({ lean: async () => { seen.push(['get', filter]); return null; } });
+  model.findOneAndUpdate = (filter, update, options) => ({ lean: async () => { seen.push(['patch', filter, update, options]); return null; } });
+  model.deleteOne = async filter => { seen.push(['delete', filter]); return { deletedCount: 0 }; };
+  await repo.initialize(); await repo.get('alice', 'session');
+  await repo.update('alice', 'session', 4, { id: 'session', ownerId: 'alice', revision: 5, note: 'saved' });
+  await repo.delete('alice', 'session', 5);
+  assert.deepEqual(seen[0], ['index', { ownerId: 1, startedAt: -1 }]);
+  assert.deepEqual(seen[1], ['get', { _id: 'session', ownerId: 'alice' }]);
+  assert.deepEqual(seen[2][1], { _id: 'session', ownerId: 'alice', revision: 4 });
+  assert.deepEqual(seen[2][2], { $set: { revision: 5, note: 'saved' } });
+  assert.equal(seen[2][3].returnDocument, 'after');
+  assert.deepEqual(seen[3][1], { _id: 'session', ownerId: 'alice', revision: 5, status: { $in: ['completed', 'ended-early'] } });
+  assert.deepEqual(odm.modelNames(), ['WorkoutSession']);
+});

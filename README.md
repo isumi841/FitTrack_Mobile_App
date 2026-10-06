@@ -6,18 +6,34 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ### Workout screens (Member 3)
 
-The entry route opens `/workout/details`. All eight workout screens use the dark
+Member 3 setup, development identity, CRUD testing and the team data contract are
+documented in [the implementation handoff](docs/MEMBER3_HANDOFF.md). Configure the
+private backend settings before saving sessions.
+
+Open **Workouts → Admin login** in development to enter the dashboard imported from
+`admin_dashboard_new`. Temporary username: `admin`; password: the private
+`ADMIN_DEV_TOKEN` value in `backend/.env`. Open **Exercises** in its sidebar for exercise
+CRUD. See [dashboard integration](docs/ADMIN_DASHBOARD_INTEGRATION.md) and
+[exercise management setup](docs/EXERCISE_MANAGEMENT.md) for setup and manual checks.
+
+The entry route opens the leader's `/member2/workout` selection screen, with cards linked
+to `/workout/details?workoutId=...`. See [the selection integration notes](docs/WORKOUT_SELECTION_INTEGRATION.md)
+for the imported branch, data contract, and next screen to implement. The temporary
+`/workout/browse` catalog remains accessible through quick actions for session testing.
+Workout screens use the dark
 and lime palette in `src/constants/fittrack-theme.ts`, with shared controls in
 `src/features/workout/ui.tsx`.
 
 The floating dock lives in the workout layout so it stays mounted between screens.
 Its destinations and quick actions are configured in
-`src/components/navigation/navigation-config.ts`. This branch links to Workouts,
-Guide, Timer, and Inbox. Replace that configuration with the team's Home,
-Workouts, Progress, and Profile destinations once those routes are merged;
-`/member4/*` routes are not included here. The center button opens quick actions.
-Opening quick actions or leaving a session pauses it; switching from the guided
-view to the timer keeps it running.
+`src/components/navigation/navigation-config.ts`. It displays Home, Workouts,
+Progress, and Profile around the center quick-actions button. Since this branch
+does not include the team's Home or Profile destinations, those tabs temporarily
+reuse the workout overview and notifications screens; `/member4/*` routes are
+not included here. The quick actions open the sample catalog, local notifications,
+and module session history. Opening quick
+actions or leaving a session pauses it; switching between guided and timer views
+keeps it running.
 
 Run `npx expo lint` and `npx tsc --noEmit` to validate changes. On PowerShell with
 script execution disabled, use `npx.cmd` in place of `npx`.

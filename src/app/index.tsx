@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
-// Temporary entry point for your branch; restore the team home screen on integration.
+// Preview the leader's selection flow before entering exercise guidance.
 export default function Index() {
-  return <Redirect href="/workout/details" />;
+  return <Redirect href="/member2/workout" />;
 }

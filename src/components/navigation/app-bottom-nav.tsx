@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { APP_NAV_ITEMS, getActiveNavigationId, type NavigationItem } from './navigation-config';
 import { NavigationIcon } from './navigation-icon';
-import { NAV_COLORS as C, NAV_SPRING } from './navigation-theme';
+import { NAV_COLORS as C, NAV_SPRING, NAV_THEME as T } from './navigation-theme';
 import { QuickActionsSheet } from './quick-actions-sheet';
 
 function NavItem({ item, active, onNavigate }: { item: NavigationItem; active: boolean; onNavigate: () => void }) {
@@ -115,7 +115,7 @@ export function AppBottomNav({ onBeforeNavigate }: { onBeforeNavigate: () => voi
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open quick actions"
-                accessibilityHint="Open your workout, adjust the timer, or review your latest session"
+                accessibilityHint="Set a goal, plan a reminder, or check your progress"
                 accessibilityState={{ expanded: actionsOpen }}
                 testID="nav-add"
                 onPress={() => { Keyboard.dismiss(); onBeforeNavigate(); setActionsOpen(true); }}
@@ -144,11 +144,11 @@ const styles = StyleSheet.create({
   footer: { paddingTop: 8, backgroundColor: 'transparent' },
   hidden: { display: 'none' },
   dock: {
-    borderRadius: 28, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+    borderRadius: 28, backgroundColor: T.dock, borderWidth: 1, borderColor: C.border,
     paddingHorizontal: 5,
     ...Platform.select({
-      web: { boxShadow: '0 6px 16px rgba(0,0,0,0.25)' },
-      default: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
+      web: { boxShadow: `0 6px 16px ${T.overlay}` },
+      default: { shadowColor: T.overlay, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 12 },
     }),
   },
   topShine: { pointerEvents: 'none', position: 'absolute', top: 0, left: 28, right: 28, height: 1, backgroundColor: C.border },
@@ -167,8 +167,8 @@ const styles = StyleSheet.create({
     width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     backgroundColor: C.accent, borderWidth: 1, borderColor: C.accent,
     ...Platform.select({
-      web: { boxShadow: `0 3px 12px ${C.accentGlow}` },
-      default: { shadowColor: C.accent, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
+      web: { boxShadow: `0 3px 12px ${T.activeGlow}` },
+      default: { shadowColor: T.active, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
     }),
   },
   addShine: { pointerEvents: 'none', position: 'absolute', left: 9, right: 9, top: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.5)' },

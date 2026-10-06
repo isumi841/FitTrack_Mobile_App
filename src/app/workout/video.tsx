@@ -4,15 +4,14 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useCallback, useState } from "react";
 import { Text } from "react-native";
 import {
-    exercises,
     type Exercise,
 } from "../../features/workout/data";
 import { useWorkout } from "../../features/workout/store";
+import { useExerciseSource } from '../../features/workout/resources';
 import {
     Badge,
     Button,
     Card,
-    Figure,
     Page,
     c,
     s,
@@ -59,10 +58,11 @@ function Player({ exercise }: { exercise: Exercise }) {
   );
 }
 export default function VideoDemonstrationScreen() {
-  const params = useLocalSearchParams<{ exercise?: string }>();
-  const exercise =
-    exercises.find((e) => e.id === params.exercise) ?? exercises[0];
+  const params = useLocalSearchParams<{ exercise?: string; workoutId?: string; sessionId?: string }>();
+  const { workout, error, loading, retry } = useExerciseSource(params.workoutId, params.sessionId);
+  const exercise = workout?.exercises.find((e) => e.id === params.exercise);
   const { data } = useWorkout();
+  if (!exercise) return <Page title="Video demonstration"><Text style={s.body}>{loading ? 'Loading exercise…' : error || 'Exercise not found in this workout.'}</Text><Button title="Retry" onPress={retry} /></Page>;
   return (
     <Page title="Video Demonstration">
       <Badge>VIDEO GUIDANCE</Badge>
@@ -70,7 +70,6 @@ export default function VideoDemonstrationScreen() {
         <Player key={exercise.id} exercise={exercise} />
       ) : (
         <Card>
-          <Figure id={exercise.id} />
           <Text style={s.heading}>Video not available yet</Text>
           <Text style={s.body}>
             You can still follow the written instructions for this movement.
@@ -87,7 +86,7 @@ export default function VideoDemonstrationScreen() {
         onPress={() =>
           router.replace({
             pathname: "/workout/instructions",
-            params: { exercise: exercise.id },
+            params: { exercise: exercise.id, ...(params.workoutId ? { workoutId: params.workoutId } : {}), ...(params.sessionId ? { sessionId: params.sessionId } : {}) },
           })
         }
       />
@@ -95,11 +94,13 @@ export default function VideoDemonstrationScreen() {
         title="Return to Workout"
         onPress={() =>
           router.replace(
-            data.session?.status === "paused"
+            params.sessionId && data.session?.id === params.sessionId && data.session?.status === "paused"
               ? "/workout/pause"
-              : data.session?.status === "running"
+              : params.sessionId && data.session?.id === params.sessionId && data.session?.status === "running"
                 ? "/workout/active"
-                : "/workout/details",
+                : params.sessionId
+                  ? { pathname: '/workout/completed', params: { sessionId: params.sessionId } }
+                  : { pathname: '/workout/details', params: { workoutId: params.workoutId } },
           )
         }
       />

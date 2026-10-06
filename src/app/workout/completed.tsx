@@ -1,166 +1,37 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Text, TextInput, View } from "react-native";
-import {
-    formatTime,
-    workout,
-} from "../../features/workout/data";
-import { useWorkout } from "../../features/workout/store";
-import {
-    Button,
-    Card,
-    Page,
-    Row,
-    c,
-    s,
-} from "../../features/workout/ui";
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Text, TextInput } from 'react-native';
+import { formatTime } from '@/features/workout/data';
+import { isFinished, totalSets } from '@/features/workout/engine';
+import { useWorkout } from '@/features/workout/store';
+import { DevelopmentIdentity } from '@/features/workout/development-identity';
+import { Button, Card, Page, Row, s } from '@/features/workout/ui';
 export default function WorkoutCompletedScreen() {
-  const { data } = useWorkout();
   const params = useLocalSearchParams<{ session?: string }>();
-  const session = params.session
-    ? data.history.find((v) => v.id === params.session)
-    : data.history[0];
-  if (!session)
-    return (
-      <Page title="Session Summary">
-        <Card>
-          <Text style={s.heading}>No saved session here yet</Text>
-          <Text style={s.body}>Finish a workout to see its summary.</Text>
-        </Card>
-        <Button
-          title="View Workout"
-          onPress={() => router.replace("/workout/details")}
-        />
-      </Page>
-    );
-  return <Summary key={session.id} id={session.id} />;
+  const { data, token, loadSession, busy } = useWorkout();
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!params.session) return;
+    void loadSession(params.session);
+  }, [params.session, token, loadSession, attempt]);
+  const session = data.session?.id === params.session ? data.session : null;
+  if (!session || !isFinished(session)) return <Page title="Session summary"><DevelopmentIdentity /><Text style={s.body}>{busy ? 'Loading saved summary…' : 'Choose a completed or ended session from history.'}</Text><Button title="Retry summary" disabled={busy} onPress={() => setAttempt(n => n + 1)} /><Button title="Session history" onPress={() => router.replace('/workout/sessions')} /></Page>;
+  return <Summary key={session.id} />;
 }
-function Summary({ id }: { id: string }) {
-  const { data, updateSummary, deleteSummary } = useWorkout();
-  const session = data.history.find((v) => v.id === id)!;
+function Summary() {
+  const { data, updateSummary, deleteSummary, busy, pending } = useWorkout();
+  const session = data.session!;
   const [note, setNote] = useState(session.note);
   const [saved, setSaved] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const complete =
-    session.status === "completed" && session.completedSets === 15;
-  return (
-    <Page
-      title="Session Summary"
-      onBack={() => router.replace("/workout/details")}
-    >
-      <View style={{ alignItems: "center", paddingVertical: 18, gap: 14 }}>
-        <View
-          style={{
-            width: 86,
-            height: 86,
-            borderRadius: 43,
-            borderWidth: 2,
-            borderColor: c.accent,
-            backgroundColor: c.accentSoft,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: c.accent, fontSize: 40 }}>
-            {complete ? "✓" : "◇"}
-          </Text>
-        </View>
-        <Text style={s.title}>
-          {complete
-            ? "Workout Complete!"
-            : session.status === "ended"
-              ? "Session Ended"
-              : "Session Finished"}
-        </Text>
-        <Text style={s.body}>
-          {complete
-            ? "You finished your session successfully."
-            : "Your completed activity has been saved."}
-        </Text>
-      </View>
-      <Card>
-        <Text style={s.heading}>{workout.name} Summary</Text>
-        <Row
-          label="Total duration (incl. recovery)"
-          value={formatTime(session.elapsedMs / 1000)}
-        />
-        <Row
-          label="Completed sets"
-          value={`${session.completedSets} of 15 sets`}
-        />
-        <Row label="Skipped sets" value={String(session.skippedSets)} />
-        <Row
-          label="Status"
-          value={
-            complete
-              ? "Completed"
-              : session.status === "ended"
-                ? "Ended early"
-                : "Finished with skips"
-          }
-        />
-        <Row
-          label="Date"
-          value={new Date(session.startedAt).toLocaleDateString()}
-        />
-      </Card>
-      <Card tinted>
-        <Text style={s.smallStrong}>
-          Every session is a step forward. Keep building your routine at your
-          own pace.
-        </Text>
-      </Card>
-      <Card>
-        <Text style={s.heading}>How did it feel?</Text>
-        <TextInput
-          accessibilityLabel="Session note"
-          placeholder="Add a note about this session…"
-          placeholderTextColor={c.muted}
-          selectionColor={c.accent}
-          value={note}
-          onChangeText={(v) => {
-            setNote(v);
-            setSaved(false);
-          }}
-          multiline
-          maxLength={500}
-          style={[s.input, { minHeight: 80 }]}
-        />
-        <Button
-          title={saved ? "✓ Note updated" : "Save session note"}
-          onPress={() => {
-            updateSummary(id, note.trim());
-            setSaved(true);
-          }}
-          secondary
-        />
-      </Card>
-      <Button
-        title="Back to Workout Details"
-        onPress={() => router.replace("/workout/details")}
-      />
-      <Button
-        title="Delete this session record"
-        danger
-        onPress={() => setConfirm(true)}
-      />
-      {confirm && (
-        <Card>
-          <Text style={s.body}>
-            Delete this saved summary and its notification? This cannot be
-            undone.
-          </Text>
-          <Button
-            title="Delete record"
-            danger
-            onPress={() => {
-              deleteSummary(id);
-              router.replace("/workout/details");
-            }}
-          />
-          <Button title="Cancel" secondary onPress={() => setConfirm(false)} />
-        </Card>
-      )}
-    </Page>
-  );
+  return <Page title="Saved session summary" onBack={() => router.replace('/workout/sessions')}>
+    <Text style={s.title}>{session.status === 'completed' ? 'Workout finished' : 'Session ended early'}</Text>
+    <Card><Text style={s.heading}>{session.snapshot.name}</Text><Row label="Active duration (including recovery)" value={formatTime(Math.floor(session.elapsedMs / 1000))} /><Row label="Completed sets" value={`${session.completedSets} of ${totalSets(session)}`} /><Row label="Skipped sets" value={String(session.skippedSets)} /><Row label="Status" value={session.status} /><Row label="Date" value={new Date(session.startedAt).toLocaleString()} /><Row label="Revision" value={String(session.revision)} /></Card>
+    <Card><Text style={s.heading}>How did it feel?</Text><TextInput accessibilityLabel="Session note" value={note} onChangeText={value => { setNote(value); setSaved(false); }} multiline maxLength={500} style={s.input} />
+      <Button title={saved ? 'Note saved to backend' : 'Save session note'} disabled={busy || pending} onPress={async () => { setSaved(await updateSummary(session.id, note)); }} />
+    </Card>
+    <Button title="Delete this session record" danger disabled={busy || pending} onPress={() => setConfirm(true)} />
+    {confirm && <Card><Text style={s.body}>Permanently delete only this saved session? The catalog workout remains available.</Text><Button title="Confirm delete" danger disabled={busy || pending} onPress={async () => { if (await deleteSummary(session.id)) router.replace('/workout/sessions'); }} /><Button title="Cancel" secondary onPress={() => setConfirm(false)} /></Card>}
+    <Button title="Session history" secondary onPress={() => router.replace('/workout/sessions')} /><Button title="Browse workouts" secondary onPress={() => router.replace('/workout/browse')} />
+  </Page>;
 }

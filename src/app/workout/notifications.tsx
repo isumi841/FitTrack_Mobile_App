@@ -15,6 +15,7 @@ export default function NotificationsScreen() {
   const unread = data.notices.filter((n) => !n.read).length;
   return (
     <Page title="Notifications">
+      <Text style={s.body}>Local-only inbox on this device. These are not push notifications or shared workout reminders.</Text>
       <View style={s.row}>
         <Text style={s.heading}>Inbox</Text>
         <Badge>{unread} unread</Badge>

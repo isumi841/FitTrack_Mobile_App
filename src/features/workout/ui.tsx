@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,25 +29,30 @@ export function Row({ label, value }: { label: string; value: string }) {
   return <View style={s.row}><Text style={[s.body, { flex: 1 }]}>{label}</Text><Text style={[s.smallStrong, { flex: 1, textAlign: 'right' }]}>{value}</Text></View>;
 }
 
-export function Page({ title, children, onBack, back = true }: { title: string; children: ReactNode; onBack?: () => void; back?: boolean }) {
-  const { error, retrySave, data, pause } = useWorkout();
+export function Page({ title, children, onBack, back = true, scope = 'workout' }: { title: string; children: ReactNode; onBack?: () => void; back?: boolean; scope?: 'workout' | 'admin' }) {
+  const { error, retrySave, data, pause, busy, pending, conflict, discardConflict } = useWorkout();
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const unread = data.notices.filter(n => !n.read).length;
   return <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
     <View style={s.header}>
-      {back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={onBack ?? (() => router.canGoBack() ? router.back() : router.replace('/workout/details'))} style={s.iconButton}>
+      {back ? <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={onBack ?? (() => router.canGoBack() ? router.back() : router.replace('/workout/browse'))} style={s.iconButton}>
         <NavigationIcon name="back" color={c.accent} size={20} />
       </Pressable> : <View style={s.brandMark}><NavigationIcon name="workouts" color={c.accent} size={24} /></View>}
       <View style={{ flex: 1, gap: 3 }}>
-        <Text style={s.eyebrow}>FITTRACK / TRAINING</Text>
+        <Text style={s.eyebrow}>{scope === 'admin' ? 'FITTRACK / ADMIN' : 'FITTRACK / TRAINING'}</Text>
         <Text accessibilityRole="header" style={s.heading}>{title}</Text>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Open notifications, ${unread} unread`} onPress={() => { pause(); router.navigate('/workout/notifications'); }} style={s.iconButton}>
+      {scope === 'workout' && <Pressable accessibilityRole="button" accessibilityLabel={`Open notifications, ${unread} unread`} onPress={() => { pause(); router.navigate('/workout/notifications'); }} style={s.iconButton}>
         <NavigationIcon name="bell" color={c.text} size={21} />
         {unread > 0 && <View style={s.dot} />}
-      </Pressable>
+      </Pressable>}
     </View>
     <ScrollView style={s.flex} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-      {!!error && <Card><Text accessibilityRole="alert" style={s.body}>{error}</Text>{!error.startsWith('Saved data') && <Button title="Retry saving" onPress={retrySave} secondary />}</Card>}
+      {scope === 'workout' && busy && <Text accessibilityLiveRegion="polite" style={s.body}>Saving or loading from API…</Text>}
+      {scope === 'workout' && !!error && <Card><Text accessibilityRole="alert" style={s.body}>{error}</Text>{pending && <Button title="Retry pending API request" disabled={busy} onPress={() => { void retrySave(); }} secondary />}
+        {conflict && <Button title="Use server version…" secondary onPress={() => setConfirmDiscard(true)} />}
+        {confirmDiscard && <><Text style={s.body}>Discard this device’s unsaved changes and load the newer server record?</Text><Button title="Discard unsaved changes" danger onPress={() => { setConfirmDiscard(false); void discardConflict(); }} /><Button title="Keep pending changes" secondary onPress={() => setConfirmDiscard(false)} /></>}
+      </Card>}
       {children}
     </ScrollView>
   </SafeAreaView>;

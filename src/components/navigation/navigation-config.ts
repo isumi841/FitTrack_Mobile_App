@@ -9,12 +9,12 @@ export interface NavigationItem {
   matchPaths: readonly string[];
 }
 
-// Only link to routes in this branch. Replace these when the team's features merge.
+// Reuse this branch's workout routes until the team's Home/Profile destinations merge.
 export const APP_NAV_ITEMS: readonly NavigationItem[] = [
-  { id: 'workouts', label: 'Workouts', icon: 'workouts', href: '/workout/details', matchPaths: ['/', '/workout'] },
-  { id: 'guide', label: 'Guide', icon: 'guide', href: '/workout/instructions', matchPaths: ['/workout/instructions', '/workout/video'] },
-  { id: 'timer', label: 'Timer', icon: 'timer', href: '/workout/timer', matchPaths: ['/workout/timer'] },
-  { id: 'inbox', label: 'Inbox', icon: 'bell', href: '/workout/notifications', matchPaths: ['/workout/notifications'] },
+  { id: 'home', label: 'Home', icon: 'home', href: '/', matchPaths: ['/'] },
+  { id: 'workouts', label: 'Workouts', icon: 'workouts', href: '/member2/workout', matchPaths: ['/member2', '/workout/details', '/workout/browse', '/workout/instructions', '/workout/video', '/workout/active', '/workout/pause', '/workout/timer'] },
+  { id: 'progress', label: 'Progress', icon: 'progress', href: '/workout/sessions', matchPaths: ['/workout/sessions', '/workout/completed'] },
+  { id: 'profile', label: 'Profile', icon: 'profile', href: '/workout/notifications', matchPaths: ['/workout/notifications'] },
 ];
 
 export interface QuickAction {
@@ -26,9 +26,9 @@ export interface QuickAction {
 }
 
 export const APP_QUICK_ACTIONS: readonly QuickAction[] = [
-  { id: 'workout', label: 'Your workout', description: 'Start fresh or return to your session', icon: 'workouts', href: '/workout/details' },
-  { id: 'timer', label: 'Workout timer', description: 'View your session or set your next intervals', icon: 'timer', href: '/workout/timer' },
-  { id: 'summary', label: 'Latest session', description: 'Review your activity and session notes', icon: 'progress', href: '/workout/completed' },
+  { id: 'goal', label: 'Browse sample workouts', description: 'Choose a temporary test routine', icon: 'goal', href: '/workout/browse' },
+  { id: 'reminder', label: 'Local notifications', description: 'Read this device’s session notices', icon: 'bell', href: '/workout/notifications' },
+  { id: 'progress', label: 'Session history', description: 'Open your saved module test sessions', icon: 'progress', href: '/workout/sessions' },
 ];
 
 /** Longest segment match keeps child routes in the correct tab. */

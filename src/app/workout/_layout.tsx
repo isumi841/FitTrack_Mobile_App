@@ -4,12 +4,13 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, View } from 'r
 import { useReducedMotion } from 'react-native-reanimated';
 import { AppBottomNav } from '@/components/navigation/app-bottom-nav';
 import { c, s } from '@/features/workout/ui';
-import { WorkoutProvider, useWorkout } from '../../features/workout/store';
+import { useWorkout } from '../../features/workout/store';
 function Navigator() {
   const { ready, data, pause } = useWorkout();
   const path = usePathname();
   const previousPath = useRef(path);
   const reducedMotion = useReducedMotion();
+  useEffect(() => () => pause(), [pause]);
   useEffect(() => {
     const leftSession = ['/workout/active', '/workout/timer'].includes(previousPath.current);
     previousPath.current = path;
@@ -23,4 +24,4 @@ function Navigator() {
     </View>
   </KeyboardAvoidingView>;
 }
-export default function Layout() { return <WorkoutProvider><Navigator /></WorkoutProvider>; }
+export default function Layout() { return <Navigator />; }

@@ -46,7 +46,7 @@ function Settings() {
         <Text style={s.title}>Find your rhythm</Text>
         <Text style={s.body}>
           Set movement and recovery time for your next session. The default
-          routine lasts 15 minutes, including recovery.
+          duration depends on the selected workout’s movements and rounds.
         </Text>
         <Text style={s.smallStrong}>Movement (seconds)</Text>
         <TextInput
@@ -88,7 +88,7 @@ function Settings() {
       <Button
         title="Return to workout details"
         secondary
-        onPress={() => router.replace("/workout/details")}
+        onPress={() => router.replace("/workout/browse")}
       />
     </Page>
   );

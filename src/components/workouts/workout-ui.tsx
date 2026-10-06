@@ -337,11 +337,13 @@ export function CategoryCard({
   category,
   compact = false,
 }: {
-  category: (typeof categoryDetails)[number];
+  category: (typeof categoryDetails)[number] & { workoutCount?: number };
   compact?: boolean;
 }) {
   const theme = useTheme();
-  const count = matchingWorkouts("", { category: category.title }).length;
+  const count =
+    category.workoutCount ??
+    matchingWorkouts("", { category: category.title }).length;
   return (
     <Pressable
       accessibilityRole="button"

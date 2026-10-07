@@ -1,18 +1,41 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { ThemeProvider, useTheme } from '@/constants/theme';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+// Prevent splash screen from auto-hiding until we are ready
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
-SplashScreen.preventAutoHideAsync();
+function RootNavigator() {
+  const t = useTheme();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+    <>
+      <StatusBar style={t.isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: t.bg },
+          animation: 'fade',
+        }}>
+        {/* Root welcome screen */}
+        <Stack.Screen name="index" />
+        {/* Member 1 — Onboarding & Personalization */}
+        <Stack.Screen name="member1_onboarding_personalization" />
+      </Stack>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootNavigator />
     </ThemeProvider>
   );
 }

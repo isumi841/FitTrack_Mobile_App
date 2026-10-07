@@ -16,7 +16,7 @@ const MAX_OTP_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const BCRYPT_ROUNDS = 12;
 const PENDING_SIGNUP_MESSAGE = 'A sign-up is already pending for this email. Verify it or request a new code.';
-const DUPLICATE_LOCAL_MESSAGE = 'This SLIIT email is already registered. Please log in instead.';
+const DUPLICATE_LOCAL_MESSAGE = 'This email is already registered. Please log in instead.';
 const DUPLICATE_PASSWORD_MESSAGE = 'This email is already registered. Please log in instead.';
 const ORIGINAL_METHOD_MESSAGE = 'An account already exists with this email. Please log in using your original sign-in method.';
 const nonceHash = (nonce) => createHash('sha256').update(nonce).digest('hex');
@@ -49,7 +49,7 @@ function publicAdmin(admin) {
 }
 
 function requireValidEmail(email) {
-  if (!isValidSliitEmail(email)) throw httpError(400, VALIDATION_MESSAGES.sliitEmail);
+  if (!isValidEmail(email)) throw httpError(400, VALIDATION_MESSAGES.email);
   return normalizeEmail(email);
 }
 
@@ -267,16 +267,8 @@ function createAuthRouter({
       throw httpError(400, VALIDATION_MESSAGES.confirmPassword);
     }
 
-    const isSliit = isValidSliitEmail(email);
-    const accountType = isSliit ? 'user' : 'admin';
-
-    if (isSliit) {
-      await requireUnregisteredEmail(email);
-    } else {
-      if (await Admin.exists({ email })) {
-        throw httpError(409, 'This admin email is already registered. Please log in instead.');
-      }
-    }
+    const accountType = 'user';
+    await requireUnregisteredEmail(email);
 
     if (await EmailVerification.findOne({ email }).select('_id').lean()) {
       throw httpError(409, PENDING_SIGNUP_MESSAGE);

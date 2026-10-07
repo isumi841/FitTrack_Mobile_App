@@ -17,9 +17,7 @@ const VALIDATION_MESSAGES = {
 };
 
 function isValidSliitEmail(email) {
-  if (typeof email !== 'string') return false;
-
-  return SLIIT_EMAIL_REGEX.test(email);
+  return isValidEmail(email);
 }
 
 function isValidEmail(email) {
@@ -50,12 +48,6 @@ function normalizeEmail(email) {
 
   if (!isValidEmail(value)) return '';
 
-  // Normalize SLIIT student email consistently.
-  if (/^it\d{8}@my\.sliit\.lk$/i.test(value)) {
-    return value.slice(0, 10).toUpperCase() + '@my.sliit.lk';
-  }
-
-  // Personal emails are stored lowercase for duplicate checking.
   return value.toLowerCase();
 }
 

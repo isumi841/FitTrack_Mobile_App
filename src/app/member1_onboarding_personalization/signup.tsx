@@ -58,7 +58,7 @@ export default function SignupScreen() {
   async function handleSignup() {
     if (busy) return;
     const nextErrors: FormErrors = {};
-    if (!isValidSliitEmail(email)) nextErrors.email = AUTH_VALIDATION_MESSAGES.sliitEmail;
+    if (!isValidSliitEmail(email)) nextErrors.email = AUTH_VALIDATION_MESSAGES.email;
     if (!isStrongPassword(password)) nextErrors.password = AUTH_VALIDATION_MESSAGES.password;
     else if (getPasswordByteLength(password) > 72) nextErrors.password = AUTH_VALIDATION_MESSAGES.passwordMaxLength;
     if (!confirmPassword) nextErrors.confirmPassword = 'Confirm your password.';

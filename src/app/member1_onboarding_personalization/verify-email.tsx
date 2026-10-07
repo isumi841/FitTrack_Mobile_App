@@ -11,7 +11,7 @@ import { MobileScreenContainer } from '@/components/member1/MobileScreenContaine
 import { OtpCodeInput, type OtpCodeInputHandle } from '@/components/member1/OtpCodeInput';
 import { AuthApiError, resendOtp, verifyEmail } from '@/features/member1/auth/auth-api';
 import { clearOtpCooldown, getOtpCooldown, startOtpCooldown } from '@/features/member1/auth/otp-cooldown';
-import { isValidSliitEmail } from '@/features/member1/utils/validation';
+import { isValidEmail } from '@/features/member1/utils/validation';
 
 const emptyCode = () => Array<string>(6).fill('');
 
@@ -19,7 +19,7 @@ export default function VerifyEmailScreen() {
   const focused = useIsFocused();
   const { email } = useLocalSearchParams<{ email?: string | string[] }>();
   // This page can also be opened directly, so validate its optional URL parameter.
-  const pendingEmail = isValidSliitEmail(email) ? email : undefined;
+  const pendingEmail = isValidEmail(email) ? email : undefined;
   const [otpDigits, setOtpDigits] = useState(emptyCode);
   const [otpError, setOtpError] = useState('');
   const [feedback, setFeedback] = useState<{ email: string; message: string } | null>(null);

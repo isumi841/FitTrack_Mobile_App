@@ -121,6 +121,8 @@ if (require.main === module) {
     console.error('Backend startup failed. Check backend/.env, MongoDB Atlas access, and your configured port.');
     
     console.error('Startup error name:', error?.name);
+    console.error('Startup error message:', error?.message);
+    console.error('Startup error reason:', error?.reason?.type);
     await mongoose.disconnect();
     process.exitCode = 1;
   });

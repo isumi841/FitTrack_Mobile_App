@@ -30,16 +30,11 @@ export function isValidEmail(email: unknown): email is string {
 
 export function normalizeEmail(email: unknown): string {
   if (!isValidEmail(email)) return '';
-  // Keep existing student accounts reachable without changing their stored keys.
-  if (/^it\d{8}@my\.sliit\.lk$/i.test(email)) {
-    return `${email.slice(0, 10).toUpperCase()}@my.sliit.lk`;
-  }
-  return email.toLowerCase();
+  return typeof email === 'string' ? email.toLowerCase() : '';
 }
 
 export function isValidSliitEmail(email: unknown): email is string {
-  // The backend canonicalizes an accepted student address before duplicate checks.
-  return typeof email === 'string' && !/\s/.test(email) && SLIIT_EMAIL_REGEX.test(email);
+  return isValidEmail(email);
 }
 
 export function getPasswordRequirements(password: string): PasswordRequirementResults {

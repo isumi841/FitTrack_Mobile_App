@@ -1,22 +1,34 @@
 import { router, type Href } from 'expo-router';
 import { Platform, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 
+import {
+  Member4Avatar,
+} from '@/features/member4/components/Member4Avatar';
+
+import {
+  useMember4Profile,
+} from '@/features/member4/context/Member4ProfileContext';
+
 import { NavigationIcon } from '@/components/navigation/navigation-icon';
 import { NAV_COLORS as N } from '@/components/navigation/navigation-theme';
 import { M4Screen } from '@/features/member4/components/M4Screen';
 import { ProfileIcon } from '@/features/member4/components/ProfileIcon';
 import { ProfilePressable, ProfileProgressBar, ProfileReveal } from '@/features/member4/components/ProfileMotion';
-import { mockAchievements, mockGoals, mockProgressStats, mockUserProfile } from '@/features/member4/data/mockData';
+import { mockAchievements, mockGoals, mockProgressStats } from '@/features/member4/data/mockData';
 import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
 
 export default function ProfileScreen() {
+
   const c = useM4Theme();
   const dark = useColorScheme() === 'dark';
-  const profile = mockUserProfile;
   const weeklyGoal = mockGoals.find((goal) => goal.type === 'Workouts per week');
   const earned = mockAchievements.filter((badge) => badge.isUnlocked).length;
   const badgeProgress = mockAchievements.length ? Math.round(earned / mockAchievements.length * 100) : 0;
   const activeGoals = mockGoals.filter((goal) => goal.currentValue < goal.targetValue).length;
+
+  const {
+    profile,
+  } = useMember4Profile();
 
   // Always push detail pages so Back returns here, including shared History routes.
   const open = (href: Href) => router.push(href);
@@ -36,7 +48,8 @@ export default function ProfileScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         <ProfileReveal>
-          <ProfilePressable label={`Edit profile for ${profile.fullName}`} hint="Opens your personal details and fitness focus"
+          <ProfilePressable label={`Edit profile for ${
+            profile?.fullName || 'FitTrack User'}`} hint="Opens your personal details and fitness focus"
             testID="profile-edit" onPress={() => open('/member4/edit-profile')} style={styles.hero}>
             <View pointerEvents="none" style={styles.heroOrbit} />
             <View style={styles.heroTop}>
@@ -48,21 +61,27 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.identity}>
               <View style={styles.avatarWrap}>
-                <View style={styles.avatar}>
-                  <Text style={styles.initials}>{profile.avatarInitials}</Text>
-                </View>
-                {profile.emailVerified && (
-                  <View style={styles.verified}>
-                    <ProfileIcon name="check" color={N.ink} size={12} />
-                  </View>
-                )}
+                <Member4Avatar
+                  size={92}
+                />
+
               </View>
               <View style={styles.identityCopy}>
-                <Text style={styles.name}>{profile.fullName}</Text>
-                <Text style={styles.username}>{profile.username}</Text>
+                <Text style={styles.name}>
+                  {profile?.fullName ||
+                    'FitTrack User'}
+                </Text>
+
+
+                <Text style={styles.username}>
+                {profile?.username || '@username'}
+                </Text>
                 <View style={styles.focusTag}>
                   <ProfileIcon name="spark" color={N.accent} size={12} />
-                  <Text style={styles.focusText}>{profile.fitnessFocusTags[0] ?? 'Keep moving forward'}</Text>
+                  <Text style={styles.focusText}>
+                    {profile?.focus?.[0] ??
+                      'Keep moving forward'}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -196,9 +215,11 @@ const styles = StyleSheet.create({
   editPill: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   editText: { color: N.accent, fontSize: 11, fontWeight: '600' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatarWrap: { width: 64, height: 64 },
-  avatar: { width: 64, height: 64, borderRadius: 23, backgroundColor: N.accent, alignItems: 'center', justifyContent: 'center' },
-  initials: { color: N.ink, fontSize: 25, fontWeight: '800', letterSpacing: -1 },
+ avatarWrap: {
+  width: 92,
+  height: 92,
+},
+
   verified: { position: 'absolute', right: -4, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: N.accent, borderWidth: 3, borderColor: N.surface, alignItems: 'center', justifyContent: 'center' },
   identityCopy: { flex: 1, minWidth: 0 },
   name: { fontSize: 23, fontWeight: '700', letterSpacing: -0.8, color: N.text },

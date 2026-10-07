@@ -1,3 +1,6 @@
+import { File } from 'expo-file-system';
+import { fetch as expoFetch } from 'expo/fetch';
+
 const API_BASE_URL =
   'http://localhost:5001/api/member4';
 
@@ -221,6 +224,102 @@ export interface ApiUserProfile {
   updatedAt: string;
 }
 
+export type AvatarUploadFile = {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+};
+
+export async function uploadProfileAvatar(
+  file: AvatarUploadFile,
+) {
+  const imageFile =
+    new File(file.uri);
+
+  const formData =
+    new FormData();
+
+  formData.append(
+    'avatar',
+    imageFile,
+  );
+
+  const response =
+    await expoFetch(
+      `${API_BASE_URL}/profile/avatar`,
+      {
+        method: 'POST',
+
+        headers: {
+          Accept:
+            'application/json',
+
+          'x-user-id':
+            DEV_USER_ID,
+        },
+
+        body: formData,
+      },
+    );
+
+  let result:
+    ApiSingleResponse<ApiUserProfile>;
+
+  try {
+    result =
+      await response.json();
+  } catch {
+    throw new Error(
+      'The server returned an invalid image upload response.',
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      result.message ||
+        'Unable to upload profile photo.',
+    );
+  }
+
+  return result;
+}
+
+export async function deleteProfileAvatar() {
+  const response =
+    await fetch(
+      `${API_BASE_URL}/profile/avatar`,
+      {
+        method: 'DELETE',
+
+        headers: {
+          'x-user-id':
+            DEV_USER_ID,
+        },
+      },
+    );
+
+  let result:
+    ApiSingleResponse<ApiUserProfile>;
+
+  try {
+    result =
+      await response.json();
+  } catch {
+    throw new Error(
+      'The server returned an invalid response.',
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      result.message ||
+        'Unable to remove profile photo.',
+    );
+  }
+
+  return result;
+}
+
 export interface ProfilePayload {
   fullName: string;
   username: string;
@@ -334,52 +433,91 @@ export async function deleteProfile() {
    REMINDERS
 ===================================================== */
 
+export type ApiReminderDay =
+  | 'Mon'
+  | 'Tue'
+  | 'Wed'
+  | 'Thu'
+  | 'Fri'
+  | 'Sat'
+  | 'Sun';
+
+export interface ApiReminder {
+  _id: string;
+  userId: string;
+
+  enabled: boolean;
+  time: string;
+  days: ApiReminderDay[];
+
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  motivationalMessage: boolean;
+
+  timezone: string;
+  label: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReminderPayload {
+  enabled: boolean;
+  time: string;
+  days: ApiReminderDay[];
+
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  motivationalMessage: boolean;
+
+  timezone: string;
+  label: string;
+}
+
+export type UpdateReminderPayload =
+  Partial<ReminderPayload>;
+
 export async function getReminders() {
-  return request<{
-    success: boolean;
-
-    count: number;
-
-    data: any[];
-  }>('/reminders');
+  return request<
+    ApiListResponse<ApiReminder>
+  >('/reminders');
 }
 
 export async function createReminder(
-  data: any,
+  data: ReminderPayload,
 ) {
-  return request(
-    '/reminders',
-    {
-      method: 'POST',
-
-      body: JSON.stringify(data),
-    },
-  );
+  return request<
+    ApiSingleResponse<ApiReminder>
+  >('/reminders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateReminder(
   id: string,
-  data: any,
+  data: UpdateReminderPayload,
 ) {
-  return request(
-    `/reminders/${id}`,
-    {
-      method: 'PATCH',
-
-      body: JSON.stringify(data),
-    },
-  );
+  return request<
+    ApiSingleResponse<ApiReminder>
+  >(`/reminders/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteReminder(
   id: string,
 ) {
-  return request(
-    `/reminders/${id}`,
-    {
-      method: 'DELETE',
-    },
-  );
+  return request<{
+    success: boolean;
+    message: string;
+    data: {
+      id: string;
+    };
+  }>(`/reminders/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 /* =====================================================

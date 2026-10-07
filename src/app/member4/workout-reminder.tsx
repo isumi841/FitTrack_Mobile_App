@@ -29,16 +29,20 @@ import {
   ProfileReveal,
 } from '@/features/member4/components/ProfileMotion';
 
+import {
+  createReminder,
+  deleteReminder,
+  getReminders,
+  updateReminder,
+  type ApiReminder,
+  type ApiReminderDay,
+  type ReminderPayload,
+} from '@/features/member4/services/member4Service';
+
 import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
 
 type DayCode =
-  | 'Mon'
-  | 'Tue'
-  | 'Wed'
-  | 'Thu'
-  | 'Fri'
-  | 'Sat'
-  | 'Sun';
+  ApiReminderDay;
 
 type ReminderPreset = {
   id: string;
@@ -177,6 +181,28 @@ function ReminderPulse({
 export default function WorkoutReminderScreen() {
   const c = useM4Theme();
 
+  const [
+  reminderId,
+  setReminderId,
+] = useState<string | null>(
+  null,
+);
+
+const [
+  loadingReminder,
+  setLoadingReminder,
+] = useState(true);
+
+const [
+  savingReminder,
+  setSavingReminder,
+] = useState(false);
+
+const [
+  deletingReminder,
+  setDeletingReminder,
+] = useState(false);
+
   const [enabled, setEnabled] =
     useState(true);
 
@@ -220,6 +246,119 @@ export default function WorkoutReminderScreen() {
       motivationalMessage: true,
     });
 
+function applyReminder(
+  reminder: ApiReminder,
+) {
+  const reminderDays: DayCode[] =
+    [...reminder.days];
+
+  setReminderId(
+    reminder._id,
+  );
+
+  setEnabled(
+    reminder.enabled,
+  );
+
+  setSelectedTime(
+    reminder.time,
+  );
+
+  setSelectedDays(
+    reminderDays,
+  );
+
+  setSoundEnabled(
+    reminder.soundEnabled,
+  );
+
+  setVibrationEnabled(
+    reminder.vibrationEnabled,
+  );
+
+  setMotivationalMessage(
+    reminder.motivationalMessage,
+  );
+
+  setSavedSnapshot({
+    enabled:
+      reminder.enabled,
+
+    selectedTime:
+      reminder.time,
+
+    selectedDays:
+      reminderDays,
+
+    soundEnabled:
+      reminder.soundEnabled,
+
+    vibrationEnabled:
+      reminder.vibrationEnabled,
+
+    motivationalMessage:
+      reminder.motivationalMessage,
+  });
+}
+
+useEffect(() => {
+  let mounted = true;
+
+  async function loadReminder() {
+    try {
+      setLoadingReminder(
+        true,
+      );
+
+      const response =
+        await getReminders();
+
+      if (!mounted) {
+        return;
+      }
+
+      const firstReminder =
+        response.data[0];
+
+      if (firstReminder) {
+        applyReminder(
+          firstReminder,
+        );
+      } else {
+        setReminderId(
+          null,
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Reminder load error:',
+        error,
+      );
+
+      if (mounted) {
+        Alert.alert(
+          'Unable to load reminder',
+          error instanceof Error
+            ? error.message
+            : 'Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setLoadingReminder(
+          false,
+        );
+      }
+    }
+  }
+
+  void loadReminder();
+
+  return () => {
+    mounted = false;
+  };
+}, []);
+
   const hasChanges = useMemo(() => {
     return (
       enabled !== savedSnapshot.enabled ||
@@ -245,6 +384,15 @@ export default function WorkoutReminderScreen() {
     soundEnabled,
     vibrationEnabled,
   ]);
+
+  const canSave =
+  !loadingReminder &&
+  !savingReminder &&
+  !deletingReminder &&
+  (
+    reminderId === null ||
+    hasChanges
+  );
 
   const scheduleLabel = useMemo(() => {
     if (!enabled) {
@@ -356,39 +504,218 @@ export default function WorkoutReminderScreen() {
     setSelectedDays([]);
   }
 
-  function handleSave() {
-    if (!hasChanges) {
-      return;
-    }
+  async function handleSave() {
+      if (
+        loadingReminder ||
+        savingReminder ||
+        deletingReminder
+      ) {
+        return;
+      }
 
-    if (
-      enabled &&
-      selectedDays.length === 0
-    ) {
-      Alert.alert(
-        'Choose reminder days',
-        'Please select at least one workout reminder day.',
-      );
+      if (
+        reminderId !== null &&
+        !hasChanges
+      ) {
+        return;
+      }
 
-      return;
-    }
+      if (
+        enabled &&
+        selectedDays.length === 0
+      ) {
+        Alert.alert(
+          'Choose reminder days',
+          'Please select at least one workout reminder day.',
+        );
 
-    setSavedSnapshot({
+        return;
+      }
+
+  const payload:
+    ReminderPayload = {
       enabled,
-      selectedTime,
-      selectedDays: [...selectedDays],
+
+      time:
+        selectedTime,
+
+      days:
+        selectedDays,
+
       soundEnabled,
+
       vibrationEnabled,
+
       motivationalMessage,
-    });
+
+      timezone:
+        'Asia/Colombo',
+
+      label:
+        'Workout reminder',
+    };
+
+  try {
+    setSavingReminder(
+      true,
+    );
+
+    const creating =
+      reminderId === null;
+
+    const response =
+      creating
+        ? await createReminder(
+            payload,
+          )
+        : await updateReminder(
+            reminderId,
+            payload,
+          );
+
+    applyReminder(
+      response.data,
+    );
 
     Alert.alert(
-      'Reminder updated',
-      enabled
-        ? `Your workout reminder is scheduled for ${selectedTime}.`
+      creating
+        ? 'Reminder created'
+        : 'Reminder updated',
+
+      response.data.enabled
+        ? `Your workout reminder is scheduled for ${response.data.time}.`
         : 'Your workout reminder has been paused.',
     );
+  } catch (error) {
+    console.error(
+      'Reminder save error:',
+      error,
+    );
+
+    Alert.alert(
+      'Unable to save reminder',
+      error instanceof Error
+        ? error.message
+        : 'Please try again.',
+    );
+  } finally {
+    setSavingReminder(
+      false,
+    );
   }
+}
+
+function handleDeleteReminder() {
+      if (
+        !reminderId ||
+        deletingReminder ||
+        savingReminder
+      ) {
+        return;
+      }
+
+      Alert.alert(
+        'Delete workout reminder?',
+        'This reminder will be permanently removed.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+
+            onPress: async () => {
+              try {
+                setDeletingReminder(
+                  true,
+                );
+
+                await deleteReminder(
+                  reminderId,
+                );
+
+                const defaultDays:
+                  DayCode[] = [
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                  ];
+
+                setReminderId(
+                  null,
+                );
+
+                setEnabled(true);
+
+                setSelectedTime(
+                  '06:30 AM',
+                );
+
+                setSelectedDays(
+                  defaultDays,
+                );
+
+                setSoundEnabled(
+                  true,
+                );
+
+                setVibrationEnabled(
+                  true,
+                );
+
+                setMotivationalMessage(
+                  true,
+                );
+
+                setSavedSnapshot({
+                  enabled: true,
+
+                  selectedTime:
+                    '06:30 AM',
+
+                  selectedDays:
+                    defaultDays,
+
+                  soundEnabled:
+                    true,
+
+                  vibrationEnabled:
+                    true,
+
+                  motivationalMessage:
+                    true,
+                });
+
+                Alert.alert(
+                  'Reminder deleted',
+                  'Your workout reminder has been removed.',
+                );
+              } catch (error) {
+                console.error(
+                  'Reminder delete error:',
+                  error,
+                );
+
+                Alert.alert(
+                  'Unable to delete reminder',
+                  error instanceof Error
+                    ? error.message
+                    : 'Please try again.',
+                );
+              } finally {
+                setDeletingReminder(
+                  false,
+                );
+              }
+            },
+          },
+        ],
+      );
+    }
 
   function restoreSettings() {
     setEnabled(savedSnapshot.enabled);
@@ -468,27 +795,27 @@ export default function WorkoutReminderScreen() {
         <ProfilePressable
           label="Save reminder"
           onPress={() => {
-            if (!hasChanges) {
-              return;
-            }
+              if (!canSave) {
+                return;
+              }
 
-            handleSave();
-          }}
+              void handleSave();
+            }}
           style={[
             styles.headerSaveButton,
             {
               backgroundColor:
-                hasChanges
+                canSave
                   ? c.teal
                   : c.surface,
 
               borderColor:
-                hasChanges
+                canSave
                   ? c.teal
                   : c.border,
 
               opacity:
-                hasChanges
+                canSave
                   ? 1
                   : 0.55,
             },
@@ -498,7 +825,7 @@ export default function WorkoutReminderScreen() {
             name="check"
             size={18}
             color={
-              hasChanges
+              canSave
                 ? '#07130F'
                 : c.muted
             }
@@ -1370,27 +1697,27 @@ export default function WorkoutReminderScreen() {
           <ProfilePressable
             label="Save reminder settings"
             onPress={() => {
-              if (!hasChanges) {
+              if (!canSave) {
                 return;
               }
 
-              handleSave();
+              void handleSave();
             }}
             style={[
               styles.primaryButton,
               {
                 backgroundColor:
-                  hasChanges
+                  canSave
                     ? c.teal
                     : c.surface,
 
                 borderColor:
-                  hasChanges
+                  canSave
                     ? c.teal
                     : c.border,
 
                 opacity:
-                  hasChanges
+                  canSave
                     ? 1
                     : 0.55,
 
@@ -1408,19 +1735,11 @@ export default function WorkoutReminderScreen() {
               }
             />
 
-            <Text
-              style={[
-                styles.primaryButtonText,
-                {
-                  color:
-                    hasChanges
-                      ? '#07130F'
-                      : c.muted,
-                },
-              ]}
-            >
-              Save Reminder
-            </Text>
+            {savingReminder
+            ? 'Saving...'
+            : reminderId
+              ? 'Save Changes'
+              : 'Create Reminder'}
           </ProfilePressable>
 
           <ProfilePressable
@@ -1447,6 +1766,44 @@ export default function WorkoutReminderScreen() {
               Reset Changes
             </Text>
           </ProfilePressable>
+
+          {reminderId && (
+          <ProfilePressable
+            label="Delete workout reminder"
+            onPress={
+              handleDeleteReminder
+            }
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor:
+                  c.cardBg,
+
+                borderColor:
+                  '#FF6B6B',
+
+                opacity:
+                  deletingReminder
+                    ? 0.55
+                    : 1,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                {
+                  color:
+                    '#FF6B6B',
+                },
+              ]}
+            >
+              {deletingReminder
+                ? 'Deleting...'
+                : 'Delete Reminder'}
+            </Text>
+          </ProfilePressable>
+        )}
         </ProfileReveal>
 
         <ProfileReveal delay={290}>

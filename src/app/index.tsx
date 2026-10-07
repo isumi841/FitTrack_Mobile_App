@@ -1,5 +1,7 @@
-import ProgressScreen from './member4/progress';
+import { Redirect } from 'expo-router';
 
 export default function Index() {
-  return <ProgressScreen />;
+  return (
+    <Redirect href="/member4/progress" />
+  );
 }

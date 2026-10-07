@@ -1,6 +1,10 @@
 import { router } from 'expo-router';
 
 import {
+  useMember4Profile,
+} from '@/features/member4/context/Member4ProfileContext';
+
+import {
   useEffect,
   useMemo,
   useRef,
@@ -11,6 +15,7 @@ import {
 import {
   Alert,
   Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -31,8 +36,10 @@ import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
 import {
   createProfile,
   deleteProfile,
+  deleteProfileAvatar,
   getProfile,
   updateProfile,
+  uploadProfileAvatar,
   type ApiUserProfile,
   type ProfilePayload,
 } from '@/features/member4/services/member4Service';
@@ -40,6 +47,8 @@ import {
 import DateTimePicker, {
   type DateTimePickerChangeEvent as DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+
+import * as ImagePicker from 'expo-image-picker';
 
 const BIO_LIMIT = 150;
 
@@ -67,6 +76,8 @@ type ProfileForm = {
   gender: string;
   bio: string;
   focus: string[];
+
+  avatarUrl: string;
 };
 
 const EMPTY_PROFILE: ProfileForm = {
@@ -78,6 +89,8 @@ const EMPTY_PROFILE: ProfileForm = {
   gender: '',
   bio: '',
   focus: [],
+
+  avatarUrl: '',
 };
 
 function formatDateForForm(
@@ -147,13 +160,25 @@ function mapApiProfileToForm(
     focus:
       apiProfile.focus ??
       [],
+
+    avatarUrl:
+      apiProfile.avatarUrl ?? '',
   };
 }
 
 export default function EditProfileScreen() {
-  const c = useM4Theme();
+const c = useM4Theme();
 
-  const [
+const {
+  setSharedProfile,
+} = useMember4Profile();
+
+const [
+  uploadingPhoto,
+  setUploadingPhoto,
+] = useState(false);
+
+const [
   showDatePicker,
   setShowDatePicker,
 ] = useState(false);
@@ -744,12 +769,310 @@ function handleDeleteProfile() {
     );
   }
 
-  function handlePhotoChange() {
+async function uploadPickedPhoto(
+  asset:
+    ImagePicker.ImagePickerAsset,
+) {
+  if (uploadingPhoto) {
+    return;
+  }
+
+  try {
+    setUploadingPhoto(true);
+
+    const response =
+      await uploadProfileAvatar({
+        uri: asset.uri,
+
+        fileName:
+          asset.fileName,
+
+        mimeType:
+          asset.mimeType,
+      });
+
+      setSharedProfile(
+        response.data,
+      );
+
+    const avatarUrl =
+      response.data.avatarUrl ??
+      '';
+
+    /*
+     * Keep any unsaved text
+     * edits while updating the
+     * avatar.
+     */
+    setProfile(
+      (current) => ({
+        ...current,
+        avatarUrl,
+      }),
+    );
+
+    setSavedProfile(
+      (current) => ({
+        ...current,
+        avatarUrl,
+      }),
+    );
+
     Alert.alert(
-      'Profile photo',
-      'Photo upload will be connected to the backend later.',
+      'Photo updated',
+      'Your profile photo has been uploaded successfully.',
+    );
+  } catch (error) {
+    console.error(
+      'Profile photo upload error:',
+      error,
+    );
+
+    Alert.alert(
+      'Unable to upload photo',
+      error instanceof Error
+        ? error.message
+        : 'Please try again.',
+    );
+  } finally {
+    setUploadingPhoto(false);
+  }
+}
+
+async function chooseProfilePhoto() {
+  try {
+    const permission =
+      await ImagePicker
+        .requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Photo permission required',
+        'Allow FitTrack to access your photos to choose a profile picture.',
+      );
+
+      return;
+    }
+
+    const result =
+      await ImagePicker
+        .launchImageLibraryAsync({
+          mediaTypes:
+            ['images'],
+
+          allowsEditing:
+            true,
+
+          aspect:
+            [1, 1],
+
+          quality:
+            0.8,
+        });
+
+    if (
+      result.canceled ||
+      !result.assets?.length
+    ) {
+      return;
+    }
+
+    await uploadPickedPhoto(
+      result.assets[0],
+    );
+  } catch (error) {
+    console.error(
+      'Image picker error:',
+      error,
+    );
+
+    Alert.alert(
+      'Unable to open photos',
+      'Please try again.',
     );
   }
+}
+
+async function takeProfilePhoto() {
+  try {
+    const permission =
+      await ImagePicker
+        .requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Camera permission required',
+        'Allow FitTrack to use your camera to take a profile picture.',
+      );
+
+      return;
+    }
+
+    const result =
+      await ImagePicker
+        .launchCameraAsync({
+          mediaTypes:
+            ['images'],
+
+          allowsEditing:
+            true,
+
+          aspect:
+            [1, 1],
+
+          quality:
+            0.8,
+        });
+
+    if (
+      result.canceled ||
+      !result.assets?.length
+    ) {
+      return;
+    }
+
+    await uploadPickedPhoto(
+      result.assets[0],
+    );
+  } catch (error) {
+    console.error(
+      'Camera error:',
+      error,
+    );
+
+    Alert.alert(
+      'Unable to open camera',
+      'Please try again.',
+    );
+  }
+}
+
+function removeProfilePhoto() {
+  Alert.alert(
+    'Remove profile photo?',
+    'Your current profile photo will be removed.',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+
+      {
+        text: 'Remove',
+        style:
+          'destructive',
+
+        onPress:
+          async () => {
+            try {
+              setUploadingPhoto(
+                true,
+              );
+
+              await deleteProfileAvatar();
+
+              setProfile(
+                (current) => ({
+                  ...current,
+                  avatarUrl: '',
+                }),
+              );
+
+              setSavedProfile(
+                (current) => ({
+                  ...current,
+                  avatarUrl: '',
+                }),
+              );
+            } catch (
+              error
+            ) {
+              Alert.alert(
+                'Unable to remove photo',
+
+                error instanceof
+                Error
+                  ? error.message
+                  : 'Please try again.',
+              );
+            } finally {
+              setUploadingPhoto(
+                false,
+              );
+            }
+          },
+      },
+    ],
+  );
+}
+
+function handlePhotoChange() {
+  if (uploadingPhoto) {
+    return;
+  }
+
+  /*
+   * The avatar belongs to an
+   * existing MongoDB profile.
+   */
+  if (!profileExists) {
+    Alert.alert(
+      'Save profile first',
+      'Enter your profile details and tap Save Changes before adding a profile photo.',
+    );
+
+    return;
+  }
+
+  Alert.alert(
+    'Profile photo',
+    'Choose how you want to update your photo.',
+    [
+      {
+        text:
+          'Choose from Photos',
+
+        onPress:
+          () => {
+            void chooseProfilePhoto();
+          },
+      },
+
+      {
+        text:
+          'Take Photo',
+
+        onPress:
+          () => {
+            void takeProfilePhoto();
+          },
+      },
+
+      ...(profile.avatarUrl
+        ? [
+            {
+              text:
+                'Remove Photo',
+
+              style:
+                'destructive' as const,
+
+              onPress:
+                () => {
+                  removeProfilePhoto();
+                },
+            },
+          ]
+        : []),
+
+      {
+        text: 'Cancel',
+        style:
+          'cancel' as const,
+      },
+    ],
+  );
+}
 
   return (
     <M4Screen>
@@ -909,16 +1232,30 @@ function handleDeleteProfile() {
                       },
                     ]}
                   >
+                    {profile.avatarUrl ? (
+                    <Image
+                      source={{
+                        uri:
+                          profile.avatarUrl,
+                      }}
+                      style={
+                        styles.avatarImage
+                      }
+                      resizeMode="cover"
+                    />
+                  ) : (
                     <Text
                       style={[
                         styles.avatarText,
                         {
-                          color: c.teal,
+                          color:
+                            c.teal,
                         },
                       ]}
                     >
                       {initials}
                     </Text>
+                  )}
                   </View>
 
                   <ProfilePressable
@@ -1680,16 +2017,30 @@ function handleDeleteProfile() {
                   },
                 ]}
               >
+                {profile.avatarUrl ? (
+                <Image
+                  source={{
+                    uri:
+                      profile.avatarUrl,
+                  }}
+                  style={
+                    styles.previewAvatarImage
+                  }
+                  resizeMode="cover"
+                />
+              ) : (
                 <Text
                   style={[
                     styles.previewInitials,
                     {
-                      color: c.teal,
+                      color:
+                        c.teal,
                     },
                   ]}
                 >
                   {initials}
                 </Text>
+              )}
               </View>
 
               <View style={styles.previewCopy}>
@@ -2241,7 +2592,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+
+  avatarImage: {
+  width: '100%',
+  height: '100%',
+  borderRadius: 27,
+  overflow: 'hidden',
+},
+
+previewAvatarImage: {
+  width: '100%',
+  height: '100%',
+  borderRadius: 18,
+},
 
   avatarText: {
     fontSize: 25,

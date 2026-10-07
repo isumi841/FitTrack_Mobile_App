@@ -1,4 +1,10 @@
 import express from 'express';
+import {
+    deleteProfileAvatar,
+    uploadProfileAvatar,
+} from '../controllers/profileController.js';
+
+import { avatarUpload } from '../../../middleware/avatarUpload.js';
 
 import { devAuth } from '../../../middleware/devAuth.js';
 
@@ -12,6 +18,19 @@ import {
 const router = express.Router();
 
 router.use(devAuth);
+
+router.post(
+  '/avatar',
+  devAuth,
+  avatarUpload,
+  uploadProfileAvatar,
+);
+
+router.delete(
+  '/avatar',
+  devAuth,
+  deleteProfileAvatar,
+);
 
 router
   .route('/')

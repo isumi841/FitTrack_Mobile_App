@@ -1,11 +1,223 @@
+import cloudinary from '../../../config/cloudinary.js';
 import { UserProfile } from '../models/UserProfile.js';
-
 /*
 |--------------------------------------------------------------------------
 | CREATE PROFILE
 |--------------------------------------------------------------------------
 | POST /api/member4/profile
 */
+function uploadImageBuffer(
+  buffer,
+) {
+  return new Promise(
+    (resolve, reject) => {
+      const stream =
+        cloudinary.uploader.upload_stream(
+          {
+            folder:
+              'fittrack/profile-photos',
+
+            resource_type:
+              'image',
+          },
+
+          (
+            error,
+            result,
+          ) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            if (!result) {
+              reject(
+                new Error(
+                  'Cloudinary did not return an upload result.',
+                ),
+              );
+              return;
+            }
+
+            resolve(result);
+          },
+        );
+
+      stream.end(buffer);
+    },
+  );
+}
+
+export async function uploadProfileAvatar(
+  req,
+  res,
+) {
+  let uploadedImage = null;
+
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            'Please select a profile photo.',
+        });
+    }
+
+    const profile =
+      await UserProfile.findOne({
+        userId: req.user.id,
+      });
+
+    if (!profile) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message:
+            'Please save your profile before uploading a photo.',
+        });
+    }
+
+    uploadedImage =
+      await uploadImageBuffer(
+        req.file.buffer,
+      );
+
+    const previousPublicId =
+      profile.avatarPublicId;
+
+    profile.avatarUrl =
+      uploadedImage.secure_url;
+
+    profile.avatarPublicId =
+      uploadedImage.public_id;
+
+    await profile.save();
+
+    /*
+     * Remove the old image
+     * only after the new one
+     * is saved successfully.
+     */
+    if (previousPublicId) {
+      void cloudinary.uploader
+        .destroy(
+          previousPublicId,
+        )
+        .catch((error) => {
+          console.warn(
+            'Unable to remove old avatar:',
+            error.message,
+          );
+        });
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message:
+          'Profile photo updated successfully.',
+        data: profile,
+      });
+  } catch (error) {
+    console.error(
+      'Upload profile avatar error:',
+      error,
+    );
+
+    /*
+     * Prevent an orphan image
+     * if MongoDB saving fails.
+     */
+    if (
+      uploadedImage?.public_id
+    ) {
+      try {
+        await cloudinary.uploader.destroy(
+          uploadedImage.public_id,
+        );
+      } catch {
+        // Ignore cleanup failure.
+      }
+    }
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message:
+          'Failed to upload profile photo.',
+      });
+  }
+}
+
+export async function deleteProfileAvatar(
+  req,
+  res,
+) {
+  try {
+    const profile =
+      await UserProfile.findOne({
+        userId: req.user.id,
+      });
+
+    if (!profile) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message:
+            'Profile not found.',
+        });
+    }
+
+    const previousPublicId =
+      profile.avatarPublicId;
+
+    profile.avatarUrl = '';
+    profile.avatarPublicId = '';
+
+    await profile.save();
+
+    if (previousPublicId) {
+      void cloudinary.uploader
+        .destroy(
+          previousPublicId,
+        )
+        .catch((error) => {
+          console.warn(
+            'Unable to remove Cloudinary avatar:',
+            error.message,
+          );
+        });
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message:
+          'Profile photo removed successfully.',
+        data: profile,
+      });
+  } catch (error) {
+    console.error(
+      'Delete profile avatar error:',
+      error,
+    );
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message:
+          'Failed to remove profile photo.',
+      });
+  }
+}
 
 export async function createProfile(
   req,

@@ -67,8 +67,13 @@ const userProfileSchema = new mongoose.Schema(
     ],
 
     avatarUrl: {
-      type: String,
-      default: '',
+        type: String,
+        default: '',
+    },
+
+    avatarPublicId: {
+        type: String,
+        default: '',
     },
   },
   {

@@ -9,6 +9,10 @@ import {
   View,
 } from 'react-native';
 
+import {
+  Member4Avatar,
+} from '@/features/member4/components/Member4Avatar';
+
 import { NAV_COLORS as N } from '@/components/navigation/navigation-theme';
 import { FitnessIcon, type FitnessIconName } from '@/features/member4/components/FitnessIcon';
 import { M4Screen } from '@/features/member4/components/M4Screen';
@@ -18,7 +22,7 @@ import {
   ProfileReveal,
 } from '@/features/member4/components/ProfileMotion';
 import { DashboardChart, DashboardRing } from '@/features/member4/components/ProgressVisuals';
-import { mockUserProfile } from '@/features/member4/data/mockData';
+
 import {
   DEMO_AS_OF,
   PERIOD_OPTIONS,
@@ -111,15 +115,26 @@ export default function ProgressScreen() {
           </Text>
         </View>
         <ProfilePressable
-          label={`Open ${mockUserProfile.fullName}’s profile`}
+          label="Open profile"
           testID="progress-profile"
-          onPress={() => router.push('/member4/profile')}
-          style={[styles.avatar, { borderColor: c.cardBdr, backgroundColor: c.cardBg }]}
+          onPress={() =>
+            router.push('/member4/profile')
+          }
+          style={styles.avatar}
         >
-          <Text style={[styles.avatarText, { color: c.teal }]}>
-            {mockUserProfile.avatarInitials}
-          </Text>
-          <View style={[styles.avatarDot, { backgroundColor: c.teal, borderColor: c.bg }]} />
+          <Member4Avatar
+            size={46}
+          />
+
+          <View
+            style={[
+              styles.avatarDot,
+              {
+                backgroundColor: c.teal,
+                borderColor: c.bg,
+              },
+            ]}
+          />
         </ProfilePressable>
       </View>
 
@@ -720,13 +735,13 @@ const styles = StyleSheet.create({
     letterSpacing: -1.2,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 17,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  width: 46,
+  height: 46,
+  borderRadius: 23,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
   avatarText: {
     fontSize: 15,
     fontWeight: '800',

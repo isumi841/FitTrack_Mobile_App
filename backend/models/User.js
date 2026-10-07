@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema({
   displayName: { type: String, maxlength: 200, default: null },
   passwordHash: { type: String, required() { return this.authProvider === 'local'; }, select: false },
   isEmailVerified: { type: Boolean, required: true, default: false },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
   createdAt: { type: Date, required: true, default: Date.now, immutable: true },
 }, {
   toJSON: {

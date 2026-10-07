@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { Animated, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { MobileScreenContainer } from '@/components/member1/MobileScreenContainer';
 import { useTheme } from '@/constants/theme';
@@ -18,8 +18,27 @@ export default function PersonalizedPlanScreen() {
   const t = useTheme();
   const [data, setData] = useState<OnboardingData | null>(null);
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const images = [
+    require('../../../assets/images/P(1).png'),
+    require('../../../assets/images/P(2).png'),
+    require('../../../assets/images/P(6).png'),
+    require('../../../assets/images/png3.png'),
+  ];
 
   useEffect(() => { getOnboardingData().then(setData); }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      });
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [fadeAnim]);
 
   const fitnessLevel = label(data?.fitnessLevel, 'Beginner');
   const fitnessGoal = label(data?.fitnessGoal, 'Lose Weight');
@@ -48,7 +67,7 @@ export default function PersonalizedPlanScreen() {
 
           <View style={[styles.card, { backgroundColor: t.surfaceElevated, borderColor: t.border }]}>
             <View style={styles.imageWrap}>
-              <Image source={require('../../../assets/images/png3.png')} style={styles.image} resizeMode="cover" />
+              <Animated.Image source={images[currentImageIndex]} style={[styles.image, { opacity: fadeAnim }]} resizeMode="cover" />
               <View style={styles.levelBadge}><Text style={styles.levelText}>{fitnessLevel.toUpperCase()}</Text></View>
             </View>
             <View style={styles.cardContent}>

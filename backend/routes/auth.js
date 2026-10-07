@@ -35,7 +35,7 @@ function publicUser(user) {
     isEmailVerified: user.isEmailVerified === true,
     authProvider: user.authProvider || 'local',
     displayName: user.displayName || null,
-    role: 'user',
+    role: user.role || 'user',
   };
 }
 
@@ -392,7 +392,7 @@ function createAuthRouter({
     }
 
     // 2. Check User Collection
-    const user = await User.findOne({ email }).select('+passwordHash email isEmailVerified authProvider displayName');
+    const user = await User.findOne({ email }).select('+passwordHash email isEmailVerified authProvider displayName role');
     if (user) {
       if (!user.isEmailVerified) {
         throw httpError(403, 'Please verify your email before logging in.');
@@ -443,8 +443,12 @@ function createAuthRouter({
     }
     if (claims.role === 'admin') {
       const admin = await Admin.findOne({ _id: claims.sub });
-      if (!admin) throw httpError(401, 'Please log in again.');
-      return res.json({ success: true, message: 'Session is valid.', user: publicAdmin(admin) });
+      if (admin) {
+        return res.json({ success: true, message: 'Session is valid.', user: publicAdmin(admin) });
+      }
+      const userAdmin = await User.findOne({ _id: claims.sub, role: 'admin' });
+      if (!userAdmin) throw httpError(401, 'Please log in again.');
+      return res.json({ success: true, message: 'Session is valid.', user: publicUser(userAdmin) });
     }
     const user = await User.findOne({ _id: claims.sub });
     if (!user || (user.authProvider || 'local') !== claims.provider ||

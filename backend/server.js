@@ -15,12 +15,13 @@ const SocialOAuthRequest = require('./models/SocialOAuthRequest');
 const SocialOAuthHandoff = require('./models/SocialOAuthHandoff');
 const { createEmailService } = require('./services/email');
 const { createAuthRouter } = require('./routes/auth');
+const { createUsersRouter } = require('./routes/users');
 const { createAuthRateLimiter } = require('./middleware/auth-rate-limit');
 const backendDirectory = path.dirname(require.resolve('./package.json'));
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-function createApp({ config, authRouter, rateLimiter = createAuthRateLimiter() }) {
+function createApp({ config, authRouter, usersRouter, rateLimiter = createAuthRateLimiter() }) {
   const app = express();
   app.disable('x-powered-by');
   // Leave trust proxy disabled unless a deployment explicitly trusts its proxy.
@@ -44,6 +45,8 @@ function createApp({ config, authRouter, rateLimiter = createAuthRateLimiter() }
     res.setHeader('Cache-Control', 'no-store');
     next();
   }, rateLimiter, authRouter);
+
+  app.use('/api/users', usersRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Endpoint not found.' });
@@ -98,7 +101,8 @@ const { seedAdmin } = require('./scripts/seed-admin');
 
   const { sendVerificationEmail } = createEmailService(config);
   const authRouter = createAuthRouter({ User, EmailVerification, bcrypt, sendVerificationEmail, config });
-  const app = createApp({ config, authRouter });
+  const usersRouter = createUsersRouter({ config });
+  const app = createApp({ config, authRouter, usersRouter });
   const server = await new Promise((resolve, reject) => {
     const listener = app.listen(config.port, () => resolve(listener));
     listener.once('error', reject);

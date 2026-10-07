@@ -1,161 +1,435 @@
-/**
- * Member 4 – Placeholder service layer.
- * All functions are stubs for future Node/Express → MongoDB integration.
- * No real HTTP calls are made here.
- */
+const API_BASE_URL =
+  'http://localhost:5001/api/member4';
 
-import type {
-  Achievement,
-  Goal,
-  GoalDuration,
-  GoalType,
-  ProgressPeriodData,
-  ProgressStats,
-  UserProfile,
-  WorkoutHistoryItem,
-  WorkoutReminder,
-} from '../types';
+const DEV_USER_ID =
+  '507f1f77bcf86cd799439011';
 
-// ─────────────────────────────────────────────
-//  Progress
-// ─────────────────────────────────────────────
+/* =====================================================
+   COMMON API TYPES
+===================================================== */
 
-/**
- * Fetch weekly progress stats for a user.
- * Future: GET /api/progress/:userId/stats?period=week
- */
-export async function fetchProgressStats(_userId: string): Promise<ProgressStats> {
-  throw new Error('fetchProgressStats: not yet implemented – awaiting API');
+interface ApiSingleResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
 }
 
-/**
- * Fetch bar-chart data for a given period.
- * Future: GET /api/progress/:userId/period?type=Week|Month|Year
- */
-export async function fetchProgressPeriod(
-  _userId: string,
-  _period: 'Week' | 'Month' | 'Year',
-): Promise<ProgressPeriodData> {
-  throw new Error('fetchProgressPeriod: not yet implemented – awaiting API');
+interface ApiListResponse<T> {
+  success: boolean;
+  count: number;
+  data: T[];
 }
 
-// ─────────────────────────────────────────────
-//  Workout History
-// ─────────────────────────────────────────────
+/* =====================================================
+   GOAL API TYPES
+===================================================== */
 
-/**
- * Fetch paginated workout history.
- * Future: GET /api/workouts/:userId/history?page=1&limit=20
- */
-export async function fetchWorkoutHistory(_userId: string): Promise<WorkoutHistoryItem[]> {
-  throw new Error('fetchWorkoutHistory: not yet implemented – awaiting API');
+export type ApiGoalType =
+  | 'workoutsPerWeek'
+  | 'caloriesPerWeek'
+  | 'workoutMinutes'
+  | 'monthlyWorkouts';
+
+export interface ApiGoal {
+  _id: string;
+  userId: string;
+
+  goalType: ApiGoalType;
+
+  title: string;
+
+  target: number;
+  current: number;
+
+  duration:
+    | 'Weekly'
+    | 'Monthly';
+
+  status:
+    | 'active'
+    | 'completed'
+    | 'archived';
+
+  startDate: string;
+  endDate: string | null;
+
+  createdAt: string;
+  updatedAt: string;
 }
 
-// ─────────────────────────────────────────────
-//  Goals
-// ─────────────────────────────────────────────
+export interface CreateGoalPayload {
+  goalType: ApiGoalType;
 
-/**
- * Fetch all goals for a user.
- * Future: GET /api/goals/:userId
- */
-export async function fetchGoals(_userId: string): Promise<Goal[]> {
-  throw new Error('fetchGoals: not yet implemented – awaiting API');
+  title: string;
+
+  target: number;
+
+  current?: number;
+
+  duration:
+    | 'Weekly'
+    | 'Monthly';
 }
 
-/**
- * Create a new goal.
- * Future: POST /api/goals/:userId
- */
+export interface UpdateGoalPayload {
+  goalType?: ApiGoalType;
+
+  title?: string;
+
+  target?: number;
+
+  current?: number;
+
+  duration?:
+    | 'Weekly'
+    | 'Monthly';
+
+  status?:
+    | 'active'
+    | 'completed'
+    | 'archived';
+}
+
+/* =====================================================
+   REQUEST HELPER
+===================================================== */
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(
+    `${API_BASE_URL}${path}`,
+    {
+      ...options,
+
+      headers: {
+        'Content-Type':
+          'application/json',
+
+        'x-user-id':
+          DEV_USER_ID,
+
+        ...(options.headers as Record<
+          string,
+          string
+        >),
+      },
+    },
+  );
+
+  let result: any;
+
+  try {
+    result =
+      await response.json();
+  } catch {
+    throw new Error(
+      'The server returned an invalid response.',
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      result.message ||
+        'Something went wrong.',
+    );
+  }
+
+  return result as T;
+}
+
+/* =====================================================
+   GOALS
+===================================================== */
+
+export async function getGoals() {
+  return request<
+    ApiListResponse<ApiGoal>
+  >('/goals');
+}
+
 export async function createGoal(
-  _userId: string,
-  _payload: { type: GoalType; targetValue: number; duration: GoalDuration },
-): Promise<Goal> {
-  throw new Error('createGoal: not yet implemented – awaiting API');
+  data: CreateGoalPayload,
+) {
+  return request<
+    ApiSingleResponse<ApiGoal>
+  >('/goals', {
+    method: 'POST',
+
+    body: JSON.stringify(data),
+  });
 }
 
-/**
- * Update an existing goal.
- * Future: PATCH /api/goals/:userId/:goalId
- */
 export async function updateGoal(
-  _userId: string,
-  _goalId: string,
-  _payload: Partial<Goal>,
-): Promise<Goal> {
-  throw new Error('updateGoal: not yet implemented – awaiting API');
+  id: string,
+  data: UpdateGoalPayload,
+) {
+  return request<
+    ApiSingleResponse<ApiGoal>
+  >(`/goals/${id}`, {
+    method: 'PATCH',
+
+    body: JSON.stringify(data),
+  });
 }
 
-/**
- * Delete a goal.
- * Future: DELETE /api/goals/:userId/:goalId
- */
-export async function deleteGoal(_userId: string, _goalId: string): Promise<void> {
-  throw new Error('deleteGoal: not yet implemented – awaiting API');
+export async function deleteGoal(
+  id: string,
+) {
+  return request<{
+    success: boolean;
+
+    message: string;
+
+    data: {
+      id: string;
+    };
+  }>(`/goals/${id}`, {
+    method: 'DELETE',
+  });
 }
 
-// ─────────────────────────────────────────────
-//  Achievements
-// ─────────────────────────────────────────────
+/* =====================================================
+   PROFILE API TYPES
+===================================================== */
 
-/**
- * Fetch all achievements for a user.
- * Future: GET /api/achievements/:userId
- */
-export async function fetchAchievements(_userId: string): Promise<Achievement[]> {
-  throw new Error('fetchAchievements: not yet implemented – awaiting API');
+export interface ApiUserProfile {
+  _id: string;
+  userId: string;
+
+  fullName: string;
+  username: string;
+
+  email?: string;
+  phone?: string;
+
+  dateOfBirth?: string;
+
+  gender?:
+    | 'Male'
+    | 'Female'
+    | 'Prefer not to say';
+
+  bio?: string;
+
+  focus?: string[];
+
+  avatarUrl?: string;
+
+  createdAt: string;
+  updatedAt: string;
 }
 
-// ─────────────────────────────────────────────
-//  Reminders
-// ─────────────────────────────────────────────
+export interface ProfilePayload {
+  fullName: string;
+  username: string;
 
-/**
- * Fetch all reminders for a user.
- * Future: GET /api/reminders/:userId
- */
-export async function fetchReminders(_userId: string): Promise<WorkoutReminder[]> {
-  throw new Error('fetchReminders: not yet implemented – awaiting API');
+  email?: string;
+  phone?: string;
+
+  dateOfBirth?: string;
+
+  gender?:
+    | 'Male'
+    | 'Female'
+    | 'Prefer not to say';
+
+  bio?: string;
+
+  focus?: string[];
+
+  avatarUrl?: string;
 }
 
-/**
- * Save (create/update) a reminder.
- * Future: POST /api/reminders/:userId
- */
-export async function saveReminder(
-  _userId: string,
-  _reminder: Omit<WorkoutReminder, 'id'> & { id?: string },
-): Promise<WorkoutReminder> {
-  throw new Error('saveReminder: not yet implemented – awaiting API');
+/* =====================================================
+   PROFILE
+===================================================== */
+
+export async function getProfile() {
+  const response = await fetch(
+    `${API_BASE_URL}/profile`,
+    {
+      headers: {
+        'Content-Type':
+          'application/json',
+
+        'x-user-id':
+          DEV_USER_ID,
+      },
+    },
+  );
+
+  let result: any;
+
+  try {
+    result =
+      await response.json();
+  } catch {
+    throw new Error(
+      'The server returned an invalid response.',
+    );
+  }
+
+  /*
+   * A 404 means this user has
+   * not created a profile yet.
+   */
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      result.message ||
+        'Unable to load profile.',
+    );
+  }
+
+  return result as {
+    success: boolean;
+    data: ApiUserProfile;
+  };
 }
 
-// ─────────────────────────────────────────────
-//  User Profile
-// ─────────────────────────────────────────────
+export async function createProfile(
+  data: ProfilePayload,
+) {
+  return request<{
+    success: boolean;
+    message?: string;
+    data: ApiUserProfile;
+  }>('/profile', {
+    method: 'POST',
 
-/**
- * Fetch the user's profile.
- * Future: GET /api/users/:userId/profile
- */
-export async function fetchUserProfile(_userId: string): Promise<UserProfile> {
-  throw new Error('fetchUserProfile: not yet implemented – awaiting API');
+    body: JSON.stringify(data),
+  });
 }
 
-/**
- * Update the user's profile fields.
- * Future: PATCH /api/users/:userId/profile
- */
-export async function updateUserProfile(
-  _userId: string,
-  _payload: Partial<UserProfile>,
-): Promise<UserProfile> {
-  throw new Error('updateUserProfile: not yet implemented – awaiting API');
+export async function updateProfile(
+  data: Partial<ProfilePayload>,
+) {
+  return request<{
+    success: boolean;
+    message?: string;
+    data: ApiUserProfile;
+  }>('/profile', {
+    method: 'PATCH',
+
+    body: JSON.stringify(data),
+  });
 }
 
-/**
- * Upload a new profile photo.
- * Future: POST /api/users/:userId/avatar  (multipart/form-data)
- */
-export async function uploadProfilePhoto(_userId: string, _photoUri: string): Promise<string> {
-  throw new Error('uploadProfilePhoto: not yet implemented – awaiting API');
+export async function deleteProfile() {
+  return request<{
+    success: boolean;
+    message?: string;
+    data?: unknown;
+  }>('/profile', {
+    method: 'DELETE',
+  });
+}
+
+/* =====================================================
+   REMINDERS
+===================================================== */
+
+export async function getReminders() {
+  return request<{
+    success: boolean;
+
+    count: number;
+
+    data: any[];
+  }>('/reminders');
+}
+
+export async function createReminder(
+  data: any,
+) {
+  return request(
+    '/reminders',
+    {
+      method: 'POST',
+
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function updateReminder(
+  id: string,
+  data: any,
+) {
+  return request(
+    `/reminders/${id}`,
+    {
+      method: 'PATCH',
+
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function deleteReminder(
+  id: string,
+) {
+  return request(
+    `/reminders/${id}`,
+    {
+      method: 'DELETE',
+    },
+  );
+}
+
+/* =====================================================
+   WORKOUTS
+===================================================== */
+
+export async function getWorkouts() {
+  return request<{
+    success: boolean;
+
+    count: number;
+
+    data: any[];
+  }>('/workouts');
+}
+
+export async function createWorkout(
+  data: any,
+) {
+  return request(
+    '/workouts',
+    {
+      method: 'POST',
+
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function updateWorkout(
+  id: string,
+  data: any,
+) {
+  return request(
+    `/workouts/${id}`,
+    {
+      method: 'PATCH',
+
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function deleteWorkout(
+  id: string,
+) {
+  return request(
+    `/workouts/${id}`,
+    {
+      method: 'DELETE',
+    },
+  );
 }

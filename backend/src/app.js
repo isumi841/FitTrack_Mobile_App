@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import goalRoutes from './modules/member4/routes/goalRoutes.js';
 import profileRoutes from './modules/member4/routes/profileRoutes.js';
 import reminderRoutes from './modules/member4/routes/reminderRoutes.js';
+import workoutRoutes from './modules/member4/routes/workoutRoutes.js';
 
 const app = express();
 
@@ -69,6 +70,12 @@ app.use(
   '/api/member4/reminders',
   reminderRoutes,
 );
+
+app.use(
+  '/api/member4/workouts',
+  workoutRoutes,
+);
+
 /*
 |--------------------------------------------------------------------------
 | 404

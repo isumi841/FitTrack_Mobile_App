@@ -1,10 +1,13 @@
 import { router } from 'expo-router';
+
 import {
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from 'react';
+
 import {
   Alert,
   Animated,
@@ -24,6 +27,19 @@ import {
   ProfileReveal,
 } from '@/features/member4/components/ProfileMotion';
 import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
+
+import {
+  createProfile,
+  deleteProfile,
+  getProfile,
+  updateProfile,
+  type ApiUserProfile,
+  type ProfilePayload,
+} from '@/features/member4/services/member4Service';
+
+import DateTimePicker, {
+  type DateTimePickerChangeEvent as DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 
 const BIO_LIMIT = 150;
 
@@ -53,31 +69,261 @@ type ProfileForm = {
   focus: string[];
 };
 
-const INITIAL_PROFILE: ProfileForm = {
-  fullName: 'Nimal Perera',
-  username: '@nimal_fitness',
-  email: 'nimal.perera@example.com',
-  phone: '+1 (555) 234-5678',
-  dateOfBirth: 'Oct 14, 1992',
-  gender: 'Male',
-  bio:
-    'Passionate about morning calisthenics, functional strength, and staying consistent 5x a week. #StayHard',
-  focus: [
-    'Stronger Every Day',
-    'Endurance',
-  ],
+const EMPTY_PROFILE: ProfileForm = {
+  fullName: '',
+  username: '',
+  email: '',
+  phone: '',
+  dateOfBirth: '',
+  gender: '',
+  bio: '',
+  focus: [],
 };
+
+function formatDateForForm(
+  value?: string,
+) {
+  if (!value) {
+    return '';
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return '';
+  }
+
+  return date.toLocaleDateString(
+    'en-US',
+    {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    },
+  );
+}
+
+function mapApiProfileToForm(
+  apiProfile: ApiUserProfile,
+): ProfileForm {
+  return {
+    fullName:
+      apiProfile.fullName ??
+      '',
+
+    username:
+      apiProfile.username ??
+      '',
+
+    email:
+      apiProfile.email ??
+      '',
+
+    phone:
+      apiProfile.phone ??
+      '',
+
+    dateOfBirth:
+  apiProfile.dateOfBirth
+    ? apiProfile.dateOfBirth.slice(
+        0,
+        10,
+      )
+    : '',
+
+    gender:
+      apiProfile.gender ??
+      '',
+
+    bio:
+      apiProfile.bio ??
+      '',
+
+    focus:
+      apiProfile.focus ??
+      [],
+  };
+}
 
 export default function EditProfileScreen() {
   const c = useM4Theme();
 
-  const [profile, setProfile] =
-    useState<ProfileForm>(INITIAL_PROFILE);
+  const [
+  showDatePicker,
+  setShowDatePicker,
+] = useState(false);
 
-  const [savedProfile, setSavedProfile] =
-    useState<ProfileForm>(INITIAL_PROFILE);
+const [profile, setProfile] =
+  useState<ProfileForm>(
+    EMPTY_PROFILE,
+  );
 
-  const [saving, setSaving] = useState(false);
+const [
+  savedProfile,
+  setSavedProfile,
+] =
+  useState<ProfileForm>(
+    EMPTY_PROFILE,
+  );
+
+const [
+  profileExists,
+  setProfileExists,
+] =
+  useState(false);
+
+const [
+  loadingProfile,
+  setLoadingProfile,
+] =
+  useState(true);
+
+const [
+  saving,
+  setSaving,
+] =
+  useState(false);
+
+const [
+  deleting,
+  setDeleting,
+] =
+  useState(false);
+
+useEffect(() => {
+  void loadProfile();
+}, []);
+
+function getDatePickerValue() {
+  if (!profile.dateOfBirth) {
+    return new Date(2000, 0, 1);
+  }
+
+  const parsed =
+    new Date(
+      profile.dateOfBirth,
+    );
+
+  if (
+    Number.isNaN(
+      parsed.getTime(),
+    )
+  ) {
+    return new Date(
+      2000,
+      0,
+      1,
+    );
+  }
+
+  return parsed;
+}
+
+function handleDateValueChange(
+  _event: DateTimePickerEvent,
+  selectedDate?: Date,
+) {
+  if (!selectedDate) {
+    return;
+  }
+
+  const year =
+    selectedDate.getFullYear();
+
+  const month = String(
+    selectedDate.getMonth() + 1,
+  ).padStart(2, '0');
+
+  const day = String(
+    selectedDate.getDate(),
+  ).padStart(2, '0');
+
+  const dateValue =
+    `${year}-${month}-${day}`;
+
+  updateField(
+    'dateOfBirth',
+    dateValue,
+  );
+
+  if (Platform.OS === 'android') {
+    setShowDatePicker(false);
+  }
+}
+
+function handleDateDismiss() {
+  setShowDatePicker(false);
+}
+
+async function loadProfile() {
+  try {
+    setLoadingProfile(
+      true,
+    );
+
+    const response =
+      await getProfile();
+
+    /*
+     * No profile exists yet.
+     * Keep the form empty.
+     */
+    if (!response) {
+      setProfileExists(
+        false,
+      );
+
+      setProfile(
+        EMPTY_PROFILE,
+      );
+
+      setSavedProfile(
+        EMPTY_PROFILE,
+      );
+
+      return;
+    }
+
+    const loadedProfile =
+      mapApiProfileToForm(
+        response.data,
+      );
+
+    setProfile(
+      loadedProfile,
+    );
+
+    setSavedProfile(
+      loadedProfile,
+    );
+
+    setProfileExists(
+      true,
+    );
+  } catch (error) {
+    console.error(
+      'Load profile error:',
+      error,
+    );
+
+    Alert.alert(
+      'Unable to load profile',
+
+      error instanceof Error
+        ? error.message
+        : 'Please check your backend connection.',
+    );
+  } finally {
+    setLoadingProfile(
+      false,
+    );
+  }
+}
 
   const pulse = useRef(
     new Animated.Value(0),
@@ -143,11 +389,22 @@ export default function EditProfileScreen() {
     }`.toUpperCase();
   }, [profile.fullName]);
 
-  const hasChanges = useMemo(
+  const hasChanges =
+  useMemo(
     () =>
-      JSON.stringify(profile) !==
-      JSON.stringify(savedProfile),
-    [profile, savedProfile],
+      !loadingProfile &&
+      JSON.stringify(
+        profile,
+      ) !==
+        JSON.stringify(
+          savedProfile,
+        ),
+
+    [
+      profile,
+      savedProfile,
+      loadingProfile,
+    ],
   );
 
   const bioCount = profile.bio.length;
@@ -245,26 +502,222 @@ export default function EditProfileScreen() {
       return false;
     }
 
+        if (
+      profile.dateOfBirth.trim()
+    ) {
+      const date =
+        new Date(
+          profile.dateOfBirth,
+        );
+
+      if (
+        Number.isNaN(
+          date.getTime(),
+        )
+      ) {
+        Alert.alert(
+          'Invalid date of birth',
+
+        );
+
+        return false;
+      }
+    }
     return true;
   }
 
-  function handleSave() {
-    if (!validateProfile()) {
-      return;
-    }
+  async function handleSave() {
+  if (
+    !validateProfile() ||
+    saving ||
+    deleting
+  ) {
+    return;
+  }
 
+  try {
     setSaving(true);
 
-    setTimeout(() => {
-      setSavedProfile(profile);
-      setSaving(false);
+    const payload:
+      ProfilePayload = {
+      fullName:
+        profile.fullName.trim(),
 
-      Alert.alert(
-        'Profile updated',
-        'Your FitTrack profile changes have been saved.',
+      username:
+        profile.username.trim(),
+
+      email:
+        profile.email.trim(),
+
+      phone:
+        profile.phone.trim(),
+
+      gender:
+        profile.gender
+          ? (profile.gender as
+              | 'Male'
+              | 'Female'
+              | 'Prefer not to say')
+          : undefined,
+
+      bio:
+        profile.bio.trim(),
+
+      focus:
+        profile.focus,
+    };
+
+    /*
+     * Convert the display date:
+     * Oct 14, 1992
+     *
+     * into an ISO date for MongoDB.
+     */
+    if (
+      profile.dateOfBirth.trim()
+    ) {
+      const parsedDate =
+        new Date(
+          profile.dateOfBirth,
+        );
+
+      payload.dateOfBirth =
+        parsedDate.toISOString();
+    }
+
+    /*
+     * CREATE
+     *
+     * Used the first time this
+     * user creates a profile.
+     */
+    const response =
+      profileExists
+        ? await updateProfile(
+            payload,
+          )
+        : await createProfile(
+            payload,
+          );
+
+    const saved =
+      mapApiProfileToForm(
+        response.data,
       );
-    }, 450);
+
+    setProfile(saved);
+
+    setSavedProfile(saved);
+
+    setProfileExists(
+      true,
+    );
+
+    Alert.alert(
+      'Profile updated',
+
+      'Your FitTrack profile has been saved successfully.',
+    );
+  } catch (error) {
+    console.error(
+      'Save profile error:',
+      error,
+    );
+
+    Alert.alert(
+      'Unable to save profile',
+
+      error instanceof Error
+        ? error.message
+        : 'Please try again.',
+    );
+  } finally {
+    setSaving(false);
   }
+}
+
+function handleDeleteProfile() {
+  if (
+    !profileExists ||
+    saving ||
+    deleting
+  ) {
+    return;
+  }
+
+  Alert.alert(
+    'Delete profile?',
+
+    'This will permanently delete your saved Member 4 profile information.',
+
+    [
+      {
+        text:
+          'Cancel',
+
+        style:
+          'cancel',
+      },
+
+      {
+        text:
+          'Delete',
+
+        style:
+          'destructive',
+
+        onPress:
+          async () => {
+            try {
+              setDeleting(
+                true,
+              );
+
+              await deleteProfile();
+
+              setProfile(
+                EMPTY_PROFILE,
+              );
+
+              setSavedProfile(
+                EMPTY_PROFILE,
+              );
+
+              setProfileExists(
+                false,
+              );
+
+              Alert.alert(
+                'Profile deleted',
+
+                'Your saved profile information has been removed.',
+              );
+            } catch (
+              error
+            ) {
+              console.error(
+                'Delete profile error:',
+                error,
+              );
+
+              Alert.alert(
+                'Unable to delete profile',
+
+                error instanceof
+                Error
+                  ? error.message
+                  : 'Please try again.',
+              );
+            } finally {
+              setDeleting(
+                false,
+              );
+            }
+          },
+      },
+    ],
+  );
+}
 
   function handleCancel() {
     if (!hasChanges) {
@@ -607,7 +1060,7 @@ export default function EditProfileScreen() {
                         },
                       ]}
                     >
-                      2
+                      {profile.focus.length}
                     </Text>
 
                     <Text
@@ -784,19 +1237,114 @@ export default function EditProfileScreen() {
 
               <FieldDivider />
 
-              <ProfileField
-                label="DATE OF BIRTH"
-                value={profile.dateOfBirth}
-                placeholder="Oct 14, 1992"
-                onChangeText={(value) =>
-                  updateField(
-                    'dateOfBirth',
-                    value,
+              <ProfilePressable
+                label="Select date of birth"
+                onPress={() =>
+                  setShowDatePicker(
+                    true,
                   )
                 }
-              />
+                style={styles.datePickerField}
+              >
+                <View style={styles.datePickerCopy}>
+                  <Text
+                    style={[
+                      styles.fieldLabel,
+                      {
+                        color:
+                          c.muted,
+                      },
+                    ]}
+                  >
+                    DATE OF BIRTH
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.datePickerValue,
+                      {
+                        color:
+                          profile.dateOfBirth
+                            ? c.text
+                            : c.subtle,
+                      },
+                    ]}
+                  >
+                    {profile.dateOfBirth
+                      ? formatDateForForm(
+                          profile.dateOfBirth,
+                        )
+                      : 'Select your date of birth'}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.datePickerIcon,
+                    {
+                      backgroundColor:
+                        c.tealDim,
+                    },
+                  ]}
+                >
+                  <FitnessIcon
+                    name="calendar"
+                    size={18}
+                    color={c.teal}
+                  />
+                </View>
+              </ProfilePressable>
+
+              {showDatePicker && (
+                <View>
+                  <DateTimePicker
+                    value={getDatePickerValue()}
+                    mode="date"
+                    display={
+                      Platform.OS === 'ios'
+                        ? 'spinner'
+                        : 'default'
+                    }
+                    maximumDate={new Date()}
+                    minimumDate={
+                      new Date(1900, 0, 1)
+                    }
+                    onValueChange={
+                      handleDateValueChange
+                    }
+                    onDismiss={
+                      handleDateDismiss
+                    }
+                  />
+
+                  {Platform.OS === 'ios' && (
+                    <ProfilePressable
+                      label="Done selecting date"
+                      onPress={() =>
+                        setShowDatePicker(false)
+                      }
+                      style={[
+                        styles.dateDoneButton,
+                        {
+                          backgroundColor:
+                            c.teal,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={
+                          styles.dateDoneButtonText
+                        }
+                      >
+                        Done
+                      </Text>
+                    </ProfilePressable>
+                  )}
+                </View>
+              )}           
             </View>
           </ProfileReveal>
+
 
           {/* GENDER */}
 
@@ -858,6 +1406,8 @@ export default function EditProfileScreen() {
                         {gender}
                       </Text>
                     </ProfilePressable>
+
+                    
                   );
                 },
               )}
@@ -1333,6 +1883,37 @@ export default function EditProfileScreen() {
                 Cancel
               </Text>
             </ProfilePressable>
+
+            {profileExists && (
+            <ProfilePressable
+              label="Delete saved profile"
+              onPress={handleDeleteProfile}
+              style={[
+                styles.cancelButton,
+                {
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBdr,
+                  opacity:
+                    deleting || saving
+                      ? 0.55
+                      : 1,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  {
+                    color: '#ff6b6b',
+                  },
+                ]}
+              >
+                {deleting
+                  ? 'Deleting...'
+                  : 'Delete Profile'}
+              </Text>
+            </ProfilePressable>
+          )}
           </ProfileReveal>
           <Text
             style={[
@@ -1342,149 +1923,219 @@ export default function EditProfileScreen() {
               },
             ]}
           >
-            Your profile information will be connected
-            to your FitTrack account when backend
-            integration is added.
+            Your profile information is saved
+            to your FitTrack account.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </M4Screen>
   );
+}
+/* -----------------------------------------------
+   SMALL LOCAL COMPONENTS
+------------------------------------------------ */
 
-  /* -----------------------------------------------
-     SMALL LOCAL COMPONENTS
-  ------------------------------------------------ */
+function SectionHeader({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+}) {
+  const c = useM4Theme();
 
-  function SectionHeader({
-    eyebrow,
-    title,
-    subtitle,
-  }: {
-    eyebrow: string;
-    title: string;
-    subtitle?: string;
-  }) {
-    return (
-      <View style={styles.sectionHeader}>
+  return (
+    <View style={styles.sectionHeader}>
+      <Text
+        style={[
+          styles.sectionEyebrow,
+          {
+            color: c.muted,
+          },
+        ]}
+      >
+        {eyebrow}
+      </Text>
+
+      <Text
+        style={[
+          styles.sectionTitle,
+          {
+            color: c.text,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      {subtitle ? (
         <Text
           style={[
-            styles.sectionEyebrow,
+            styles.sectionSubtitle,
             {
               color: c.muted,
             },
           ]}
         >
-          {eyebrow}
+          {subtitle}
         </Text>
+      ) : null}
+    </View>
+  );
+}
 
+function FieldDivider() {
+  const c = useM4Theme();
+
+  return (
+    <View
+      style={[
+        styles.fieldDivider,
+        {
+          backgroundColor:
+            c.border,
+        },
+      ]}
+    />
+  );
+}
+
+type ProfileFieldProps = {
+  label: string;
+
+  value: string;
+
+  placeholder: string;
+
+  keyboardType?:
+    | 'default'
+    | 'email-address'
+    | 'phone-pad';
+
+  autoCapitalize?:
+    | 'none'
+    | 'sentences'
+    | 'words'
+    | 'characters';
+
+  onChangeText: (
+    value: string,
+  ) => void;
+
+  accessory?: ReactNode;
+};
+
+function ProfileField({
+  label,
+  value,
+  placeholder,
+  keyboardType = 'default',
+  autoCapitalize = 'sentences',
+  onChangeText,
+  accessory,
+}: ProfileFieldProps) {
+  const c = useM4Theme();
+
+  return (
+    <View style={styles.field}>
+      <View
+        style={styles.fieldLabelRow}
+      >
         <Text
           style={[
-            styles.sectionTitle,
+            styles.fieldLabel,
             {
-              color: c.text,
+              color:
+                c.muted,
             },
           ]}
         >
-          {title}
+          {label}
         </Text>
 
-        {subtitle ? (
-          <Text
-            style={[
-              styles.sectionSubtitle,
-              {
-                color: c.muted,
-              },
-            ]}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
+        {accessory}
       </View>
-    );
-  }
 
-  function FieldDivider() {
-    return (
-      <View
+      <TextInput
+        value={value}
+        onChangeText={
+          onChangeText
+        }
+        placeholder={
+          placeholder
+        }
+        placeholderTextColor={
+          c.subtle
+        }
+        keyboardType={
+          keyboardType
+        }
+        autoCapitalize={
+          autoCapitalize
+        }
+        autoCorrect={false}
+        selectionColor={
+          c.teal
+        }
         style={[
-          styles.fieldDivider,
+          styles.input,
           {
-            backgroundColor: c.border,
+            color:
+              c.text,
           },
         ]}
       />
-    );
-  }
-
-  function ProfileField({
-    label,
-    value,
-    placeholder,
-    keyboardType = 'default',
-    autoCapitalize = 'sentences',
-    onChangeText,
-    accessory,
-  }: {
-    label: string;
-    value: string;
-    placeholder: string;
-    keyboardType?:
-      | 'default'
-      | 'email-address'
-      | 'phone-pad';
-
-    autoCapitalize?:
-      | 'none'
-      | 'sentences'
-      | 'words'
-      | 'characters';
-
-    onChangeText: (
-      value: string,
-    ) => void;
-
-    accessory?: React.ReactNode;
-  }) {
-    return (
-      <View style={styles.field}>
-        <View style={styles.fieldLabelRow}>
-          <Text
-            style={[
-              styles.fieldLabel,
-              {
-                color: c.muted,
-              },
-            ]}
-          >
-            {label}
-          </Text>
-
-          {accessory}
-        </View>
-
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={c.subtle}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          selectionColor={c.teal}
-          style={[
-            styles.input,
-            {
-              color: c.text,
-            },
-          ]}
-        />
-      </View>
-    );
-  }
+    </View>
+  );
 }
 
+
 const styles = StyleSheet.create({
+
+      dateDoneButton: {
+        minHeight: 44,
+        marginTop: 8,
+        marginBottom: 8,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+
+      dateDoneButtonText: {
+        color: '#07130F',
+        fontSize: 13,
+        fontWeight: '800',
+      },
+
+        datePickerField: {
+        minHeight: 70,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+      },
+
+      datePickerCopy: {
+        flex: 1,
+      },
+
+      datePickerValue: {
+        marginTop: 7,
+        fontSize: 14,
+        fontWeight: '600',
+      },
+
+      datePickerIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+
   keyboardView: {
     flex: 1,
   },

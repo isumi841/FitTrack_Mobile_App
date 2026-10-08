@@ -78,6 +78,7 @@ function createAuthRouter({
   Admin = require('../models/Admin'),
   EmailVerification = require('../models/EmailVerification'),
   SocialAuthChallenge = require('../models/SocialAuthChallenge'),
+  PasswordReset = require('../models/PasswordReset'),
   AuthEmailLock = require('../models/AuthEmailLock'),
   bcrypt = require('bcrypt'),
   sendVerificationEmail,
@@ -438,6 +439,78 @@ function createAuthRouter({
     });
 
     res.json({ success: true, message: 'Admin account created.', user: publicAdmin(admin), session: await sessions.issue(admin) });
+  });
+
+  router.post('/forgot-password', async (req, res) => {
+    const email = requirePersonalEmail(req.body?.email);
+    const user = await User.findOne({ email }).select('_id authProvider').lean();
+    if (!user) {
+      return res.json({ success: true, message: 'If an account exists, a reset code was sent.' });
+    }
+    if (user.authProvider && user.authProvider !== 'local') {
+      throw httpError(400, 'This account uses a social login provider. Please log in using your provider.');
+    }
+
+    const currentTime = new Date();
+    const existing = await PasswordReset.findOne({ email }).select('lastSentAt status').lean();
+    if (existing && existing.status !== 'ready' && existing.lastSentAt.getTime() + 60000 > currentTime.getTime()) {
+      throw httpError(429, 'Please wait before requesting another code.');
+    }
+
+    const otpString = String(randomInt(1000, 10000));
+    const otpHash = await bcrypt.hash(otpString, BCRYPT_ROUNDS);
+    const expiresAt = new Date(currentTime.getTime() + 15 * 60 * 1000);
+    const deliveryToken = randomUUID();
+    const otpVersion = randomUUID();
+
+    await PasswordReset.findOneAndUpdate(
+      { email },
+      { $set: { otpHash, expiresAt, attempts: 0, lastSentAt: currentTime, status: 'sending', deliveryToken, otpVersion } },
+      { upsert: true, new: true }
+    );
+
+    // Send email asynchronously
+    Promise.resolve().then(async () => {
+      try {
+        await sendVerificationEmail({ email, otp: otpString, expiresInMinutes: 15 });
+        await PasswordReset.updateOne({ email, deliveryToken }, { $set: { status: 'ready' }, $unset: { deliveryToken: 1 } });
+      } catch (error) {
+        console.error('[auth] Failed to send password reset email:', error);
+        await PasswordReset.updateOne({ email, deliveryToken }, { $set: { status: 'failed' } });
+      }
+    });
+
+    res.json({ success: true, message: 'Password reset code sent.', expiresAt });
+  });
+
+  router.post('/reset-password', async (req, res) => {
+    const email = requirePersonalEmail(req.body?.email);
+    const { code, password } = req.body ?? {};
+
+    if (typeof code !== 'string' || code.trim().length !== 4) {
+      throw httpError(400, `Enter the 4-digit code from your email.`);
+    }
+    if (typeof password !== 'string' || !password.length) {
+      throw httpError(400, 'Enter a new password.');
+    }
+    if (!isPasswordWithinBcryptLimit(password)) {
+      throw httpError(400, 'Password is too long.');
+    }
+
+    const currentTime = new Date();
+    const pending = await PasswordReset.findOne({ email }).select('+otpHash attempts expiresAt status otpVersion').lean();
+    if (pendingError(pending, currentTime)) throw pendingError(pending, currentTime);
+
+    if (!await bcrypt.compare(code, pending.otpHash)) {
+      await PasswordReset.updateOne({ email, otpVersion: pending.otpVersion }, { $inc: { attempts: 1 } });
+      throw httpError(401, 'Incorrect verification code.');
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await User.updateOne({ email }, { $set: { passwordHash } });
+    await PasswordReset.deleteOne({ email, otpVersion: pending.otpVersion });
+
+    res.json({ success: true, message: 'Password reset successfully. You can now log in.' });
   });
 
   router.post('/admin/login', async (req, res) => {

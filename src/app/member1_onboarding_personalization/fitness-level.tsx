@@ -23,9 +23,11 @@ import { Ionicons } from '@expo/vector-icons';
 const IMG_BEGINNER = require('../../../assets/images/png1.png');
 const IMG_INTERMEDIATE = require('../../../assets/images/png2.png');
 const IMG_ADVANCED = require('../../../assets/images/png3.png');
+const IMG_EXPERT = require('../../../assets/images/png4.png');
+const IMG_ELITE = require('../../../assets/images/png5.png');
 
 // ── Types ───────────────────────────────────────
-type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
+type FitnessLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert' | 'elite';
 
 interface LevelOption {
   key: FitnessLevel;
@@ -60,6 +62,22 @@ const LEVELS: LevelOption[] = [
     detail: 'Best for higher intensity, strength, and performance-focused training.',
     tag: 'Experienced',
     image: IMG_ADVANCED,
+  },
+  {
+    key: 'expert',
+    title: 'Expert 🏆',
+    description: 'Highly experienced and comfortable with advanced training.',
+    detail: 'Best for challenging workouts, performance, and advanced training.',
+    tag: 'Expert',
+    image: IMG_EXPERT,
+  },
+  {
+    key: 'elite',
+    title: 'Elite',
+    description: 'Very high fitness level with extensive training and performance experience.',
+    detail: 'Best for professional and elite-level programming.',
+    tag: 'Professional',
+    image: IMG_ELITE,
   },
 ];
 

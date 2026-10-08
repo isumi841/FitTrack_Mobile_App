@@ -90,7 +90,16 @@ export default function SignupScreen() {
       setNow(Date.now());
       requestAnimationFrame(() => otpRef.current?.focus());
     } catch (error) {
-      if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to sign up. Please try again.');
+      if (!controller.signal.aborted) {
+        const msg = error instanceof Error ? error.message : 'Unable to sign up. Please try again.';
+        setMessage(msg);
+        if (msg.includes('already pending')) {
+          const canonicalEmail = normalizeEmail(email);
+          setPendingEmail(canonicalEmail);
+          setEmail(canonicalEmail);
+          requestAnimationFrame(() => otpRef.current?.focus());
+        }
+      }
     } finally {
       if (requestRef.current === controller) {
         requestRef.current = null;

@@ -233,6 +233,14 @@ export function adminSignup(payload: LoginRequest, options?: AuthRequestOptions)
   return post('/api/auth/admin/signup', payload, (value) => readSessionSuccess(value, payload.email), options);
 }
 
+export function requestPasswordReset(email: string, options?: AuthRequestOptions): Promise<void> {
+  return post('/api/auth/forgot-password', { email }, () => undefined as void, options);
+}
+
+export function resetPassword(payload: any, options?: AuthRequestOptions): Promise<void> {
+  return post('/api/auth/reset-password', payload, () => undefined as void, options);
+}
+
 export function getCurrentUser(accessToken: string, options?: AuthRequestOptions): Promise<UserSuccessResponse> {
   return post('/api/auth/me', undefined, (value) => readUserSuccess(value), options, accessToken);
 }

@@ -10,6 +10,7 @@ const { loadConfig } = require('./config');
 const User = require('./models/User');
 const EmailVerification = require('./models/EmailVerification');
 const SocialAuthChallenge = require('./models/SocialAuthChallenge');
+const PasswordReset = require('./models/PasswordReset');
 const AuthEmailLock = require('./models/AuthEmailLock');
 const SocialOAuthRequest = require('./models/SocialOAuthRequest');
 const SocialOAuthHandoff = require('./models/SocialOAuthHandoff');
@@ -93,14 +94,14 @@ const { seedAdmin } = require('./scripts/seed-admin');
   // Create replacement uniqueness protection before removing the legacy full
   // email index, which treated two Apple/Facebook accounts without email as duplicates.
   await Promise.all([User.init(), Admin.init(), EmailVerification.init(), SocialAuthChallenge.init(),
-    AuthEmailLock.init(), SocialOAuthRequest.init(), SocialOAuthHandoff.init()]);
+    AuthEmailLock.init(), SocialOAuthRequest.init(), SocialOAuthHandoff.init(), PasswordReset.init()]);
   const userIndexes = await User.collection.indexes();
   const replacement = userIndexes.find((index) => index.name === 'auth_email_unique' && index.unique && index.partialFilterExpression);
   const legacy = userIndexes.find((index) => index.name === 'email_1' && index.unique && !index.partialFilterExpression);
   if (replacement && legacy) await User.collection.dropIndex(legacy.name);
 
   const { sendVerificationEmail } = createEmailService(config);
-  const authRouter = createAuthRouter({ User, EmailVerification, bcrypt, sendVerificationEmail, config });
+  const authRouter = createAuthRouter({ User, EmailVerification, PasswordReset, bcrypt, sendVerificationEmail, config });
   const usersRouter = createUsersRouter({ config });
   const app = createApp({ config, authRouter, usersRouter });
   const server = await new Promise((resolve, reject) => {

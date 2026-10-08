@@ -16,6 +16,8 @@ const paths = {
   check: 'm5 12 4 4L19 6',
   play: 'm8 5 11 7-11 7Z',
   bookmark: 'M6 3h12v18l-6-4-6 4Z',
+  refresh: 'M20 7v5h-5 M4 17v-5h5 M6.1 7a7 7 0 0 1 11.5-1L20 9 M4 15l2.4 3A7 7 0 0 0 17.9 17',
+  trash: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6',
 } as const;
 
 export type NavigationIconName = keyof typeof paths;

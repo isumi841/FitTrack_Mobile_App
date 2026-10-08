@@ -1,9 +1,9 @@
+import { useAppViewport } from '@/components/layout/mobile-viewport';
 import {
     ScrollView,
     StyleSheet,
     Text,
     View,
-    useWindowDimensions,
 } from "react-native";
 
 import { AdminStatCard } from "@/components/admin/admin-stat-card";
@@ -11,7 +11,7 @@ import { ADMIN_COLORS } from "@/constants/admin-theme";
 
 export default function AdminDashboardScreen() {
   const dark = true;
-  const { width } = useWindowDimensions();
+  const { width } = useAppViewport();
   const isMobile = width <= 600;
   const isVerySmall = width < 360;
   const colors = dark ? ADMIN_COLORS.dark : ADMIN_COLORS.light;

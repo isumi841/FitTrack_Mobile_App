@@ -2,7 +2,6 @@ import { useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
-  matchingWorkouts,
   readWorkoutFilters,
   workoutTypes,
 } from "@/data/member2-workouts";
@@ -14,6 +13,8 @@ import {
   WorkoutText,
   workoutStyles,
 } from "@/components/workouts/workout-ui";
+import { useWorkouts } from '@/features/discovery/use-workouts';
+import { WorkoutLoadState } from '@/features/discovery/workout-load-state';
 
 export default function WorkoutLibraryScreen() {
   const params = useLocalSearchParams();
@@ -21,7 +22,8 @@ export default function WorkoutLibraryScreen() {
   const [query, setQuery] = useState(
     typeof params.query === "string" ? params.query : "",
   );
-  const items = matchingWorkouts(query, filters);
+  const resource = useWorkouts(query, filters);
+  const { items, loading, error } = resource;
   return (
     <WorkoutScreenFrame
       title="Workout Library"
@@ -52,10 +54,11 @@ export default function WorkoutLibraryScreen() {
           />
         ))}
       </View>
-      <WorkoutText muted>
+      <WorkoutLoadState {...resource} />
+      {!loading && !error && <><WorkoutText muted>
         {items.length} workouts · All levels welcome
       </WorkoutText>
-      <WorkoutList workouts={items} />
+      <WorkoutList workouts={items} /></>}
     </WorkoutScreenFrame>
   );
 }

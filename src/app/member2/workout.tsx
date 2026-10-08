@@ -5,8 +5,6 @@ import { useDiscoveryTheme as useTheme, WorkoutFonts, WorkoutFontWeights } from 
 import {
   categoryDetails,
   durations,
-  matchingWorkouts,
-  recommendedWorkout,
 } from "@/data/member2-workouts";
 import {
   CategoryCard,
@@ -19,14 +17,18 @@ import {
   WorkoutText,
   workoutStyles,
 } from "@/components/workouts/workout-ui";
+import { useWorkouts } from '@/features/discovery/use-workouts';
+import { WorkoutLoadState } from '@/features/discovery/workout-load-state';
+import { useAuth } from '@/features/member1/auth/provider';
 
 export default function WorkoutScreen() {
+  const { session } = useAuth();
   const theme = useTheme();
   const [query, setQuery] = useState("");
   const [duration, setDuration] = useState("15");
-  const matching = matchingWorkouts(query, { duration });
-  const recommended =
-    !query && duration === "15" ? [recommendedWorkout] : matching;
+  const resource = useWorkouts(query, { duration });
+  const { items: recommended, loading, error } = resource;
+  const quickWorkout = recommended[0];
   const openFilters = () =>
     router.push({
       pathname: "/member2/workout-filter",
@@ -84,7 +86,8 @@ export default function WorkoutScreen() {
         </View>
       </View>
       <WorkoutSearch value={query} onChange={setQuery} onFilter={openFilters} />
-      {__DEV__ && <WorkoutButton title="Admin login" secondary onPress={() => router.push('/admin-login')} />}
+      {(!session || session.user.role === 'admin') && <WorkoutButton title={session ? 'Admin dashboard' : 'Log in / Sign up'} secondary onPress={() => router.push(session ? '/admin' : '/member1_onboarding_personalization/login')} />}
+
       <View style={{ gap: 12 }}>
         <View style={workoutStyles.row}>
           <WorkoutText
@@ -132,7 +135,8 @@ export default function WorkoutScreen() {
             })
           }
         />
-        {recommended.length ? (
+        <WorkoutLoadState {...resource} />
+        {!loading && !error && (recommended.length ? (
           recommended
             .slice(0, 3)
             .map((workout) => (
@@ -142,11 +146,11 @@ export default function WorkoutScreen() {
           <WorkoutText muted>
             No workouts found. Try another duration or search.
           </WorkoutText>
-        )}
-        <WorkoutButton
+        ))}
+        {!loading && !error && quickWorkout && <WorkoutButton
           title="View Quick Workout"
-          onPress={() => router.push({ pathname: "/workout/details", params: { workoutId: recommendedWorkout.id } })}
-        />
+          onPress={() => router.push({ pathname: "/workout/details", params: { workoutId: quickWorkout.id } })}
+        />}
       </View>
     </WorkoutScreenFrame>
   );

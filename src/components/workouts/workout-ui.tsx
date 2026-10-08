@@ -9,6 +9,7 @@ import {
   View,
   type StyleProp,
   type TextStyle,
+  type TextProps,
 } from "react-native";
 import {
   SafeAreaView,
@@ -20,7 +21,6 @@ import { useDiscoveryTheme as useTheme, WorkoutFonts, WorkoutFontWeights } from 
 import { useDiscovery } from "@/features/discovery/store";
 import {
   categoryDetails,
-  matchingWorkouts,
   type Member2Workout,
 } from "@/data/member2-workouts";
 
@@ -50,15 +50,18 @@ export function WorkoutText({
   weight = "regular",
   muted = false,
   style,
+  accessibilityRole,
 }: {
   children: ReactNode;
   weight?: keyof typeof WorkoutFonts;
   muted?: boolean;
   style?: StyleProp<TextStyle>;
+  accessibilityRole?: TextProps['accessibilityRole'];
 }) {
   const theme = useTheme();
   return (
     <Text
+      accessibilityRole={accessibilityRole}
       style={[
         {
           fontFamily: WorkoutFonts[weight],
@@ -341,7 +344,6 @@ export function CategoryCard({
   compact?: boolean;
 }) {
   const theme = useTheme();
-  const count = matchingWorkouts("", { category: category.title }).length;
   return (
     <Pressable
       accessibilityRole="button"
@@ -387,7 +389,7 @@ export function CategoryCard({
       </WorkoutText>
       {!compact && <WorkoutText muted>{category.description}</WorkoutText>}
       <WorkoutText muted style={workoutStyles.metadata}>
-        {count} workouts
+        Explore workouts
       </WorkoutText>
     </Pressable>
   );

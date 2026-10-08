@@ -6,17 +6,21 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ### Workout screens (Member 3)
 
-Member 3 setup, development identity, CRUD testing and the team data contract are
-documented in [the implementation handoff](docs/MEMBER3_HANDOFF.md). Configure the
-private backend settings before saving sessions.
+Login, signup, email verification and onboarding are integrated from Member 1.
+See [authentication integration](docs/MEMBER1_AUTH_INTEGRATION.md) for setup and
+the mapping to your existing workout/session screens.
 
-Open **Workouts → Admin login** in development to enter the dashboard imported from
-`admin_dashboard_new`. Temporary username: `admin`; password: the private
-`ADMIN_DEV_TOKEN` value in `backend/.env`. Open **Exercises** in its sidebar for exercise
+Log in with an existing admin email and password to enter the dashboard imported from
+`admin_dashboard_new`. Open **Exercises** in its sidebar for exercise
 CRUD. See [dashboard integration](docs/ADMIN_DASHBOARD_INTEGRATION.md) and
 [exercise management setup](docs/EXERCISE_MANAGEMENT.md) for setup and manual checks.
 
-The entry route opens the leader's `/member2/workout` selection screen, with cards linked
+Workouts and the admin exercise chooser now read the leader's MongoDB workout collection.
+The backend database user needs `readWrite@test` plus `read@fittrack_db`.
+See [workout backend integration](docs/WORKOUT_BACKEND_INTEGRATION.md).
+
+The entry route opens onboarding when signed out and the workout library when signed in.
+The leader's `/member2/workout` selection screen has cards linked
 to `/workout/details?workoutId=...`. See [the selection integration notes](docs/WORKOUT_SELECTION_INTEGRATION.md)
 for the imported branch, data contract, and next screen to implement. The temporary
 `/workout/browse` catalog remains accessible through quick actions for session testing.

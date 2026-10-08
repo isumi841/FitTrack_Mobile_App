@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 import { createSessionRepository } from './session-repository.js';
 import { createExerciseRepository } from './exercise-repository.js';
+import { createWorkoutRepository } from './workout-repository.js';
+import { createMemberAuth } from './member-auth.js';
+import { createMember4, createMember4Models } from './member4/index.js';
+import { createNotifications } from './notifications.js';
 
 export function createDatabase({ odm = new mongoose.Mongoose(), logger = console } = {}) {
   let closing = false;
@@ -13,8 +17,12 @@ export function createDatabase({ odm = new mongoose.Mongoose(), logger = console
   });
 
   return {
+    createMemberAuth: (config, options) => createMemberAuth(odm, config, options),
+    createNotifications: () => createNotifications(odm),
+    createMember4: () => createMember4({ models: createMember4Models(odm) }),
     createSessionRepository: () => createSessionRepository(odm),
     createExerciseRepository: () => createExerciseRepository(odm),
+    createWorkoutRepository: databaseName => createWorkoutRepository(odm, databaseName),
     async connect(uri) {
       closing = false;
       await odm.connect(uri, {

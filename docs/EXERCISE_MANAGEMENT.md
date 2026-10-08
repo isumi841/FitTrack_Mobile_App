@@ -1,5 +1,8 @@
 # Admin exercise instructions management
 
+> Current authentication: use [Member 1 account login](MEMBER1_AUTH_INTEGRATION.md).
+> The development-token instructions below describe the earlier implementation.
+
 This is the first stage of the two-CRUD module: admin exercise management and user
 workout session management. The leader owns workout creation. Admins manage exercises
 belonging to those workouts; users can read their instructions and watch their videos.
@@ -10,14 +13,31 @@ Notifications in Profile remain deferred.
 - Open Workouts → **Admin login** (development builds), or `/admin-login`.
 - Sign in, open **Exercises** in the dashboard sidebar, select a leader workout,
   then add, view, edit or delete exercises.
-- An exercise has a name, target (reps/time), order, optional description/coaching cue,
+- An exercise has a name, target (reps/time), order, optional description,
   1–20 instruction steps, and an optional HTTPS video URL.
-- Supported video links point directly to `.mp4` or `.m3u8` media. YouTube pages and
-  local file uploads are not supported in this stage. Clearing a URL removes the video.
-- Preview opens the user-facing instructions/video screens with the same saved data.
+- Supported video links include HTTPS YouTube watch/share/Shorts/live/embed links and
+  direct `.mp4` or `.m3u8` media. Both play inside How to perform: YouTube uses an
+  iframe on web and an OS WebView on mobile; direct media uses expo-video. YouTube
+  offers an external fallback for videos that cannot be embedded. Opening YouTube
+  does not mark a video watched.
+  Local uploads are not supported. Clearing a URL removes the video.
+- Workout and exercise lists use responsive card grids. Exercise cards have only an
+  Edit action; guidance is viewed through the user's Workout Details screen.
+- The editor groups details, instructions, and video into cards. Required fields,
+  length limits, whole-number order, instruction limits, and video URLs are validated
+  with inline feedback and first-error focus. The coaching cue field is removed from
+  the editor; existing saved cues are preserved when editing older records.
 - User Workout Details shows the managed lineup. Empty workouts explain that exercises
   have not been added. The original branch's placeholder targets are not automatically
   seeded as managed instructions.
+- Workout Details uses a bookmark icon in the summary and a refresh icon beside the
+  lineup heading. Exercise rows show name, optional saved description, and the original
+  time/repetition target. Tapping a row/arrow opens How to perform: exercise name,
+  playable video, numbered instructions, then Return to workout. The personal note
+  editor is removed from this screen; existing local note data is not erased.
+  Unrelated session-save banners are hidden while browsing details and guidance;
+  actual loading errors still offer retry. Session recovery remains available in
+  session screens. Check these controls on narrow screens and with long exercise names.
 - Deletion requires confirmation. Revisions prevent stale edits/deletes. A failed create
   retains its request key and payload in the open form so retrying cannot duplicate it.
   Navigating away/refreshing discards that draft; check the list after an uncertain result.
@@ -81,7 +101,9 @@ admin access outside development. No team user account or role is created or mod
 The `Exercise` model uses the database-owned Mongoose instance and the explicit
 `exercises` collection. Its only index is scoped to workout/deletion/order/creation time.
 There is no `member3_` collection prefix. Existing `workoutsessions` records are untouched.
-Workouts remain the leader's imported catalog; no workout/user/profile collection is seeded.
+Workouts now come from the leader's `fittrack_db.workouts` collection; no
+workout/user/profile collection is seeded. See [workout backend integration](WORKOUT_BACKEND_INTEGRATION.md)
+for the required read permission and compatibility with older local workout IDs.
 
 Every managed exercise belongs to one immutable `workoutId`. Order is ascending `position`,
 then creation time and ID for ties. Deletion hides the record using `deletedAt` rather than
@@ -110,7 +132,7 @@ to an unrelated exercise. Storage failures return an explicit retryable error.
 
 Exercise input fields: `name` (1–100 chars), `target` (1–100), `subtitle` (0–200), `cue`
 (0–300), `steps` (1–20 non-empty strings, each up to 500 chars), `video` (null or HTTPS MP4/HLS
-URL up to 2048 chars), and `position` (integer 1–9999). Bodies are limited to 16 KB.
+or YouTube video URL up to 2048 chars), and `position` (integer 1–9999). Bodies are limited to 16 KB.
 Ownership/workout reassignment, protected fields, malformed URLs, and stale revisions
 are rejected. Shared frontend types are in `shared/exercise.ts`.
 
@@ -119,7 +141,10 @@ are rejected. Shared frontend types are in `shared/exercise.ts`.
 1. Sign in at `/admin-login` and open **Exercises**. A user token used as the password must be rejected.
 2. Choose a workout and create an exercise with two instruction steps and no video.
 3. Reopen it, edit the instructions/order, and add a working hosted video URL.
-4. Preview its instructions and video; check playback and the missing-video state.
+4. Open an exercise from user Workout Details. Verify the name/video/instructions/return
+   order, direct playback, inline YouTube playback/fullscreen, blocked-embed fallback,
+   invalid video links, and the missing-video state. Leave while playing and confirm
+   the player stops. Test return navigation from both details and a saved session.
 5. Visit user Workout Details for that workout and confirm it shows the saved exercise.
    Use **Refresh exercises** if details was already open.
 6. Open the same exercise in two tabs; save one and verify the other's stale save is
@@ -142,7 +167,7 @@ CRUD, public guidance, validation, stable ordering, create retries, stale update
 retries/tombstones, unchanged saved snapshots, and sanitized storage failures. Browser/device
 interaction and real Atlas integration still require the manual review above.
 
-Backend syntax checks and all 48 backend tests passed, including temporary login,
+Backend syntax checks and all 55 backend tests passed, including temporary login,
 session expiry, logout, and protected exercise requests. Frontend TypeScript passed after
 regenerating Expo's route declarations; lint of `src` and `shared` passed with zero warnings.
 Interactive browser/device testing of the integrated dashboard remains a manual check.

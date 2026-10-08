@@ -3,7 +3,6 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   filterLabel,
-  matchingWorkouts,
   readWorkoutFilters,
   type WorkoutFilters,
 } from "@/data/member2-workouts";
@@ -16,6 +15,8 @@ import {
   WorkoutText,
   workoutStyles,
 } from "@/components/workouts/workout-ui";
+import { useWorkouts } from '@/features/discovery/use-workouts';
+import { WorkoutLoadState } from '@/features/discovery/workout-load-state';
 
 export default function FilteredResultsScreen() {
   const params = useLocalSearchParams();
@@ -23,7 +24,8 @@ export default function FilteredResultsScreen() {
   const [query, setQuery] = useState(
     typeof params.query === "string" ? params.query : "",
   );
-  const items = matchingWorkouts(query, filters);
+  const resource = useWorkouts(query, filters);
+  const { items, loading, error } = resource;
   const openFilters = () =>
     router.push({
       pathname: "/member2/workout-filter",
@@ -32,7 +34,7 @@ export default function FilteredResultsScreen() {
   return (
     <WorkoutScreenFrame
       title="Workout Results"
-      subtitle={`${items.length} workouts match your preferences`}
+      subtitle={loading || error ? 'Find a workout for you' : `${items.length} workouts match your preferences`}
     >
       <WorkoutSearch value={query} onChange={setQuery} onFilter={openFilters} />
       <View style={workoutStyles.chips}>
@@ -64,7 +66,8 @@ export default function FilteredResultsScreen() {
           setQuery("");
         }}
       />
-      <WorkoutList workouts={items} />
+      <WorkoutLoadState {...resource} />
+      {!loading && !error && <WorkoutList workouts={items} />}
     </WorkoutScreenFrame>
   );
 }

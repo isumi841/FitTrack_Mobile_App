@@ -1,5 +1,6 @@
+import { MobileModal, useAppViewport } from '@/components/layout/mobile-viewport';
 import { router } from 'expo-router';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_QUICK_ACTIONS } from './navigation-config';
 import { NavigationIcon } from './navigation-icon';
@@ -9,9 +10,9 @@ export function QuickActionsSheet({ visible, onClose, reducedMotion, onBeforeNav
   visible: boolean; onClose: () => void; reducedMotion: boolean; onBeforeNavigate: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { height } = useAppViewport();
   const sheetHeight = Math.min(height * 0.8, height - insets.top - Math.max(insets.bottom, 8) - 72, 620);
-  return <Modal visible={visible} transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={onClose}>
+  return <MobileModal visible={visible} transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={onClose}>
     <View style={styles.overlay}>
       <Pressable accessibilityRole="button" accessibilityLabel="Close quick actions" onPress={onClose} style={StyleSheet.absoluteFill} />
       <View style={[styles.sheetGroup, { paddingTop: insets.top + 12, paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -35,7 +36,7 @@ export function QuickActionsSheet({ visible, onClose, reducedMotion, onBeforeNav
         </Pressable>
       </View>
     </View>
-  </Modal>;
+  </MobileModal>;
 }
 
 const styles = StyleSheet.create({

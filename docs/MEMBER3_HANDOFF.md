@@ -1,5 +1,8 @@
 # Member 3 implementation and team handoff
 
+> Current authentication: use [Member 1 account login](MEMBER1_AUTH_INTEGRATION.md).
+> The development-token instructions below describe the earlier implementation.
+
 **Update:** [Admin exercise management](EXERCISE_MANAGEMENT.md) adds a separate CRUD in
 the `exercises` collection and a separate development admin credential. The session-only
 storage description below applies to workout sessions; exercise management also writes

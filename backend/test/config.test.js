@@ -17,6 +17,9 @@ test('valid settings use the specified port, environment, and browser origins', 
   const config = parseEnvironment(settings);
   assert.equal(config.port, 5001);
   assert.equal(config.nodeEnv, 'development');
+  assert.equal(config.workoutDatabase, 'fittrack_db');
+  assert.equal(parseEnvironment({ ...settings, WORKOUT_DATABASE: 'leader_test' }).workoutDatabase, 'leader_test');
+  assert.throws(() => parseEnvironment({ ...settings, WORKOUT_DATABASE: '../other' }), ConfigurationError);
   assert.deepEqual(config.corsOrigins, ['http://localhost:8081', 'http://localhost:8082']);
 });
 

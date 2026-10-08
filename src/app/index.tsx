@@ -1,5 +1,6 @@
-import { Redirect } from "expo-router";
-// Preview the leader's selection flow before entering exercise guidance.
+import { Redirect, type Href } from "expo-router";
+import { useAuth } from '@/features/member1/auth/provider';
 export default function Index() {
-  return <Redirect href="/member2/workout" />;
+  const { session } = useAuth();
+  return <Redirect href={(session?.user.role === 'admin' ? '/admin' : session ? '/member2/workout' : '/member1_onboarding_personalization') as Href} />;
 }

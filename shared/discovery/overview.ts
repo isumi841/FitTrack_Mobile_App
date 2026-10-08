@@ -19,4 +19,7 @@ export const workoutOverviews = member2Workouts.map(workout => ({
     target: exercise.target,
   })),
 }));
-export type WorkoutOverview = (typeof workoutOverviews)[number] & { guidanceManaged?: boolean };
+export type WorkoutOverview = Omit<(typeof workoutOverviews)[number], 'exercises'> & {
+  guidanceManaged?: boolean;
+  exercises: { id: string; name: string; target: string; subtitle?: string; video?: string | null }[];
+};

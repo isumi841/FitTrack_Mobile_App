@@ -36,6 +36,50 @@ async function serve(t, options = {}) {
   const create = (values = {}) => request('/admin/exercises', 'POST', { ...input, requestId: randomUUID(), ...values });
   return { request, create, exercises, sessions };
 }
+test('MongoDB workout IDs link admin CRUD to public guidance without changing the leader workout', async t => {
+  const id = '507f1f77bcf86cd799439011';
+  const otherId = '507f1f77bcf86cd799439012';
+  const record = { _id: id, title: 'Saved leader workout', category: 'Strength', difficulty: 'Beginner', duration: 15, description: 'From MongoDB', exercises: [{ title: 'Leader target', target: '10 reps' }] };
+  const before = structuredClone(record);
+  let available = true;
+  const workoutRepository = { list: async () => available ? [record] : [], get: async key => available && key.toLowerCase() === id ? record : null };
+  const { request, create, exercises, sessions } = await serve(t, { workoutRepository });
+  const created = await create({ workoutId: id.toUpperCase() });
+  assert.equal(created.status, 201); assert.equal(created.body.exercise.workoutId, id);
+  assert.equal((await request(`/admin/exercises?workoutId=${id}`)).body.exercises.length, 1);
+  const detail = (await request(`/workouts/${id}`)).body.workout;
+  assert.equal(detail.name, record.title); assert.equal(detail.guidanceManaged, true);
+  assert.equal(detail.exercises[0].id, created.body.exercise.id);
+  assert.deepEqual((await request(`/workouts/${id}/exercises`)).body.workout.exercises, detail.exercises);
+  const updated = await request(`/admin/exercises/${created.body.exercise.id}`, 'PATCH', { revision: 0, steps: ['Updated instructions'] });
+  assert.equal(updated.status, 200);
+  assert.deepEqual((await request(`/workouts/${id}/exercises`)).body.workout.exercises[0].steps, ['Updated instructions']);
+  assert.equal((await create({ workoutId: otherId })).status, 404);
+  const started = await request('/workout-sessions', 'POST', { workoutId: id, requestId: randomUUID() }, userToken);
+  assert.equal(started.status, 201);
+  assert.equal(started.body.session.snapshot.exercises[0].durationSeconds, null);
+  assert.equal(sessions.records.size, 1);
+  assert.deepEqual(record, before);
+  available = false;
+  assert.equal((await create({ workoutId: id })).status, 404);
+  assert.equal((await request(`/workouts/${id}`)).status, 404);
+  assert.equal((await request(`/workouts/${id}/exercises`)).status, 404);
+  assert.equal(exercises.records.size, 1);
+});
+
+test('admin can save and update YouTube guidance while invalid and spoofed links are rejected', async t => {
+  const { create, request } = await serve(t);
+  const created = await create({ video: 'https://youtu.be/dQw4w9WgXcQ?si=share', cue: '' });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.exercise.video, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  const updated = await request(`/admin/exercises/${created.body.exercise.id}`, 'PATCH', { revision: 0, video: 'https://youtube.com/shorts/abcdefghijk' });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.body.exercise.video, 'https://www.youtube.com/watch?v=abcdefghijk');
+  for (const video of ['https://youtube.com/watch?v=bad', 'https://youtube.com.evil.test/watch?v=abcdefghijk', 'javascript:alert(1)']) {
+    assert.equal((await create({ video })).status, 400);
+  }
+});
+
 test('admin guard blocks users and anonymous CRUD, disabled mode and production', async t => {
   const { request } = await serve(t);
   for (const [method, path, body] of [

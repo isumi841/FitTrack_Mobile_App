@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import { memberAuthConfig } from './member-auth.js';
 
 export const ENV_FILE = fileURLToPath(new URL('../.env', import.meta.url));
 
@@ -78,7 +79,11 @@ export function parseEnvironment(env) {
     if (!/^[a-f0-9]{64}$/i.test(adminDevToken) || new Set(adminDevToken.toLowerCase()).size < 12 || adminDevToken === devAuthToken) throw new ConfigurationError('ADMIN_DEV_TOKEN must be a separate privately generated random 32-byte hexadecimal token.');
     if (!/^mongodb(?:\+srv)?:\/\/[^/]+\/test(?:\?|$)/.test(mongodbUri)) throw new ConfigurationError('Development exercises require the explicitly named test database.');
   }
-  return { port, nodeEnv, mongodbUri, corsOrigins, devAuthEnabled, devAuthToken, adminDevAuthEnabled, adminDevToken, host: devAuthEnabled || adminDevAuthEnabled ? '127.0.0.1' : undefined };
+  const workoutDatabase = env.WORKOUT_DATABASE?.trim() || 'fittrack_db';
+  if (!/^[a-zA-Z0-9_-]{1,63}$/.test(workoutDatabase)) throw new ConfigurationError('WORKOUT_DATABASE must be a database name using letters, numbers, underscores or hyphens.');
+  let auth;
+  try { auth = memberAuthConfig(env); } catch (error) { throw new ConfigurationError(error.message); }
+  return { port, nodeEnv, mongodbUri, workoutDatabase, corsOrigins, auth, devAuthEnabled, devAuthToken, adminDevAuthEnabled, adminDevToken, host: devAuthEnabled || adminDevAuthEnabled ? '127.0.0.1' : undefined };
 }
 
 export function loadConfig({ envFile = ENV_FILE, env = process.env } = {}) {

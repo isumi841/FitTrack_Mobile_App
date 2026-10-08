@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { createHash } from 'node:crypto';
-import { findWorkout } from './catalog.js';
+import { resolveWorkout } from './catalog.js';
 import { createDevelopmentAdminAuth } from './admin-auth.js';
 import { RequestError } from './session-routes.js';
 import { publicExercise } from './exercise-repository.js';
+import { exerciseVideo, VIDEO_URL_ERROR } from '../../shared/exercise-validation.ts';
 
 const fail = (status, message) => { throw new RequestError(status, message); };
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -33,22 +34,21 @@ function validate(input, partial = false) {
     result.video = null;
     if (input.video !== null && input.video !== undefined && input.video !== '') {
       const video = text(input.video, 'video URL', 2048);
-      let url;
-      try { url = new URL(video); } catch { fail(400, 'Use a direct HTTPS video URL.'); }
-      if (url.protocol !== 'https:' || url.username || url.password || !/\.(mp4|m3u8)$/i.test(url.pathname)) fail(400, 'Use a direct HTTPS MP4 or HLS (.m3u8) video URL.');
-      result.video = video;
+      const parsed = exerciseVideo(video);
+      if (!parsed) fail(400, VIDEO_URL_ERROR);
+      result.video = parsed.url;
     }
   }
   return result;
 }
-export function exerciseRoutes({ exerciseRepository: repo, config, adminIdentity }) {
+export function exerciseRoutes({ exerciseRepository: repo, workoutRepository, config, adminIdentity, notifications }) {
   const routes = Router();
   const auth = createDevelopmentAdminAuth(config);
   routes.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   const storage = () => { if (!repo) fail(503, 'Exercise storage is unavailable.'); };
-  const workout = id => { const value = findWorkout(id); if (!value) fail(404, 'Workout not found.'); return value; };
+  const workout = async id => { const value = await resolveWorkout(id, workoutRepository); if (!value) fail(404, 'Workout not found.'); return value; };
   routes.get('/workouts/:workoutId/exercises', async (req, res) => {
-    const selected = workout(req.params.workoutId);
+    const selected = await workout(req.params.workoutId);
     if (selected.sample) return res.json({ workout: { id: selected.id, name: selected.name, exercises: selected.exercises } });
     storage();
     res.json({ workout: { id: selected.id, name: selected.name, exercises: (await repo.list(selected.id)).map(publicExercise) } });
@@ -60,21 +60,23 @@ export function exerciseRoutes({ exerciseRepository: repo, config, adminIdentity
   routes.get('/admin/access', (_req, res) => res.json({ admin: true }));
   routes.get('/admin/exercises', async (req, res) => {
     if (typeof req.query.workoutId !== 'string') fail(400, 'Select a workout.');
-    workout(req.query.workoutId);
-    res.json({ exercises: (await repo.list(req.query.workoutId)).map(publicExercise) });
+    const selected = await workout(req.query.workoutId);
+    res.json({ exercises: (await repo.list(selected.id)).map(publicExercise) });
   });
   routes.post('/admin/exercises', async (req, res) => {
     body(req.body, [...fields, 'workoutId', 'requestId']);
     const { workoutId, requestId } = req.body;
     if (typeof workoutId !== 'string' || typeof requestId !== 'string' || !/^[a-zA-Z0-9-]{16,100}$/.test(requestId)) fail(400, 'A workout and valid requestId are required.');
-    if (workout(workoutId).sample) fail(400, 'Sample routines cannot be edited. Select a leader workout.');
+    const selected = await workout(workoutId);
+    if (selected.sample) fail(400, 'Sample routines cannot be edited. Select a leader workout.');
     const values = validate(req.body);
     const id = hash(`exercise:${req.adminId}:${requestId}`);
-    const fingerprint = hash(JSON.stringify([workoutId, values]));
+    const fingerprint = hash(JSON.stringify([selected.id, values]));
     const existing = await repo.get(id);
     const now = Date.now();
-    const saved = existing ?? await repo.create({ id, workoutId, ...values, revision: 0, createdAt: now, updatedAt: now, createdBy: req.adminId, createFingerprint: fingerprint });
+    const saved = existing ?? await repo.create({ id, workoutId: selected.id, ...values, revision: 0, createdAt: now, updatedAt: now, createdBy: req.adminId, createFingerprint: fingerprint });
     if (saved.deletedAt !== undefined || saved.createFingerprint !== fingerprint) fail(409, 'This create request has already been used. Reload before creating another exercise.');
+    if (!existing) void notifications?.exerciseAdded({ exercise: publicExercise(saved), workoutName: selected.name, workoutId: selected.id });
     res.status(existing ? 200 : 201).json({ exercise: publicExercise(saved) });
   });
   routes.param('exerciseId', (_req, _res, next, id) => {

@@ -2,7 +2,7 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 import { formatTime } from '@/features/workout/data';
-import { currentIndex, currentRound, isFinished } from '@/features/workout/engine';
+import { currentIndex, currentRound, isFinished, manualMovement } from '@/features/workout/engine';
 import { useWorkout } from '@/features/workout/store';
 import { Badge, Button, Card, Figure, Page, Row, s } from '@/features/workout/ui';
 export default function PauseResumeScreen() {
@@ -13,9 +13,10 @@ export default function PauseResumeScreen() {
   if (session.status === 'running') return <Redirect href="/workout/active" />;
   if (isFinished(session) && !busy && !pending) return <Redirect href={{ pathname: '/workout/completed', params: { session: session.id } }} />;
   const exercise = session.snapshot.exercises[currentIndex(session)];
-  return <Page title="Workout paused" onBack={() => router.replace('/workout/browse')}>
-    <Figure id={exercise.id} /><Card><Badge>{isFinished(session) ? 'AWAITING SAVE' : 'WORKOUT PAUSED'}</Badge><Text style={s.title}>{session.snapshot.name}</Text>
-      <Row label="Current movement" value={exercise.name} /><Row label="Remaining interval" value={formatTime(Math.ceil(session.remainingMs / 1000))} />
+  return <Page title="Workout paused" onBack={() => router.replace({ pathname: '/workout/details', params: { workoutId: session.workoutId } })}>
+    {session.snapshot.sample && <Figure id={exercise.id} />}<Card tinted><Badge>{isFinished(session) ? 'AWAITING SAVE' : 'TAKE YOUR TIME'}</Badge><Text style={s.title}>{session.snapshot.name}</Text>
+      <Text style={s.body}>Your progress is kept here. Continue when you are ready.</Text>
+      <Row label="Current exercise" value={exercise.name} /><Row label={manualMovement(session) ? 'Target' : 'Time remaining'} value={manualMovement(session) ? exercise.target ?? 'Complete at your pace' : formatTime(Math.ceil(session.remainingMs / 1000))} />
       <Row label="Round" value={`${currentRound(session)} of ${session.snapshot.rounds}`} /><Row label="Phase" value={session.phase % 2 ? 'Recovery' : 'Movement'} />
       <Button title="Resume workout" disabled={busy || pending || isFinished(session)} onPress={async () => { if (await resume()) router.replace('/workout/active'); }} />
       <Button title="End workout early" danger disabled={busy || pending || isFinished(session)} onPress={() => setConfirm(true)} />

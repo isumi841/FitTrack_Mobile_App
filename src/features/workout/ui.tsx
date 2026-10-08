@@ -29,8 +29,8 @@ export function Row({ label, value }: { label: string; value: string }) {
   return <View style={s.row}><Text style={[s.body, { flex: 1 }]}>{label}</Text><Text style={[s.smallStrong, { flex: 1, textAlign: 'right' }]}>{value}</Text></View>;
 }
 
-export function Page({ title, children, onBack, back = true, scope = 'workout' }: { title: string; children: ReactNode; onBack?: () => void; back?: boolean; scope?: 'workout' | 'admin' }) {
-  const { error, retrySave, data, pause, busy, pending, conflict, discardConflict } = useWorkout();
+export function Page({ title, children, onBack, back = true, scope = 'workout', showSessionFeedback = true, showSaving = true }: { title: string; children: ReactNode; onBack?: () => void; back?: boolean; scope?: 'workout' | 'admin'; showSessionFeedback?: boolean; showSaving?: boolean }) {
+  const { error, retrySave, data, pause, busy, pending, conflict, discardConflict, recoveryFailed, retryRecovery } = useWorkout();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const unread = data.notices.filter(n => !n.read).length;
   return <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
@@ -48,8 +48,9 @@ export function Page({ title, children, onBack, back = true, scope = 'workout' }
       </Pressable>}
     </View>
     <ScrollView style={s.flex} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-      {scope === 'workout' && busy && <Text accessibilityLiveRegion="polite" style={s.body}>Saving or loading from API…</Text>}
-      {scope === 'workout' && !!error && <Card><Text accessibilityRole="alert" style={s.body}>{error}</Text>{pending && <Button title="Retry pending API request" disabled={busy} onPress={() => { void retrySave(); }} secondary />}
+      {scope === 'workout' && showSessionFeedback && showSaving && busy && <Text accessibilityLiveRegion="polite" style={s.body}>Updating your workout…</Text>}
+      {scope === 'workout' && showSessionFeedback && !!error && <Card><Text accessibilityRole="alert" style={s.body}>{error}</Text>{pending && <Button title="Retry saving" disabled={busy} onPress={() => { void retrySave(); }} secondary />}
+        {recoveryFailed && <Button title="Retry session recovery" secondary disabled={busy} onPress={retryRecovery} />}
         {conflict && <Button title="Use server version…" secondary onPress={() => setConfirmDiscard(true)} />}
         {confirmDiscard && <><Text style={s.body}>Discard this device’s unsaved changes and load the newer server record?</Text><Button title="Discard unsaved changes" danger onPress={() => { setConfirmDiscard(false); void discardConflict(); }} /><Button title="Keep pending changes" secondary onPress={() => setConfirmDiscard(false)} /></>}
       </Card>}

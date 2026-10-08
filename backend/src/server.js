@@ -1,6 +1,6 @@
 import { ConfigurationError, loadConfig } from './config.js';
 import { createDatabase } from './database.js';
-import { createService } from './lifecycle.js';
+import { createService, StartupError } from './lifecycle.js';
 
 let service;
 
@@ -27,6 +27,6 @@ async function main() {
 }
 
 main().catch(async error => {
-  console.error(error instanceof ConfigurationError ? error.message : 'Backend startup failed. Check MongoDB credentials, Atlas network access, and whether PORT is already in use.');
+  console.error(error instanceof ConfigurationError || error instanceof StartupError ? error.message : 'Backend startup failed. Check MongoDB credentials, Atlas network access, and whether PORT is already in use.');
   await stop(1);
 });

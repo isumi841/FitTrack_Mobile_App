@@ -2,14 +2,14 @@ import { router } from 'expo-router';
 import { Text } from 'react-native';
 import type { Workout } from '@/features/workout/data';
 import { useResource } from '@/features/workout/resources';
-import { DevelopmentIdentity } from '@/features/workout/development-identity';
+import { MemberAccess } from '@/features/workout/member-access';
 import { Badge, Button, Card, Page, s } from '@/features/workout/ui';
 export default function Browse() {
   const { value, error, loading, retry } = useResource<{ workouts: Workout[] }>('/workouts');
   return <Page title="Sample workouts" back={false}>
     <Badge>TEMPORARY MEMBER 3 CATALOG</Badge><Text style={s.title}>Make time for you.</Text>
     <Text style={s.body}>Sample routines for testing exercise guidance. The team’s workout selection will replace this screen.</Text>
-    <DevelopmentIdentity />
+    <MemberAccess />
     <Button title="Session history / recover workout" secondary onPress={() => router.push('/workout/sessions')} />
     {loading && <Text style={s.body}>Loading workouts…</Text>}
     {!!error && <Card><Text accessibilityRole="alert" style={s.body}>{error}</Text><Button title="Retry catalog" onPress={retry} /></Card>}

@@ -18,3 +18,13 @@ export const workouts = [
 export { workoutOverviews } from '../../shared/discovery/overview.ts';
 import { workoutOverviews } from '../../shared/discovery/overview.ts';
 export const findWorkout = id => workouts.find(workout => workout.id === id) ?? workoutOverviews.find(workout => workout.id === id);
+
+import { workoutOverview } from './workout-repository.js';
+// Historical slug IDs remain readable for existing exercises and saved links.
+// MongoDB IDs always resolve against storage; outages never substitute fixtures.
+export async function resolveWorkout(id, repository) {
+  if (!/^[a-f0-9]{24}$/i.test(id)) return findWorkout(id);
+  if (!repository) return undefined;
+  const record = await repository.get(id);
+  return record ? workoutOverview(record) : undefined;
+}

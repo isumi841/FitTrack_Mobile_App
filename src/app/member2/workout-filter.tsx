@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import {
   difficulties,
   durations,
-  matchingWorkouts,
   readWorkoutFilters,
   workoutTypes,
   type WorkoutFilters,
@@ -17,6 +16,8 @@ import {
   WorkoutText,
   workoutStyles,
 } from "../../components/workouts/workout-ui";
+import { useWorkouts } from '@/features/discovery/use-workouts';
+import { WorkoutLoadState } from '@/features/discovery/workout-load-state';
 
 export default function WorkoutFilterScreen() {
   const params = useLocalSearchParams();
@@ -52,7 +53,7 @@ export default function WorkoutFilterScreen() {
       </View>
     </View>
   );
-  const count = matchingWorkouts(query, filters).length;
+  const resource = useWorkouts(query, filters);
   return (
     <WorkoutScreenFrame
       title="Workout Filter"
@@ -81,7 +82,8 @@ export default function WorkoutFilterScreen() {
           />
         </View>
       </WorkoutSurface>
-      <WorkoutText muted>{count} workouts match your preferences</WorkoutText>
+      <WorkoutLoadState {...resource} />
+      {!resource.loading && !resource.error && <WorkoutText muted>{resource.items.length} workouts match your preferences</WorkoutText>}
       <WorkoutButton title="Reset" secondary onPress={() => setFilters({})} />
       <WorkoutButton
         title="Show Results"

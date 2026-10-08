@@ -1,3 +1,4 @@
+import { useAppViewport } from '@/components/layout/mobile-viewport';
 import { ReactNode, useEffect, useState } from "react";
 import {
     Animated,
@@ -5,7 +6,6 @@ import {
     Pressable,
     StyleSheet,
     View,
-    useWindowDimensions,
 } from "react-native";
 import {
   SafeAreaView,
@@ -25,7 +25,7 @@ export function AdminLayout({
   children,
 }: AdminLayoutProps) {
   const dark = true;
-  const { width } = useWindowDimensions();
+  const { width } = useAppViewport();
   const isMobile = width < MOBILE_BREAKPOINT;
   const drawerWidth = Math.min(width * 0.82, 320);
   const [drawerOpen, setDrawerOpen] = useState(false);

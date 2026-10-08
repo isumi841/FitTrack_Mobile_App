@@ -12,7 +12,7 @@ export default function Layout() {
   const access = useResource<{ admin: boolean }>(token ? '/admin/access' : null, token);
   const retry = access.retry;
   useFocusEffect(useCallback(() => { retry(); }, [retry]));
-  if (!__DEV__ || !token) return <Redirect href="/admin-login" />;
+  if (!token) return <Redirect href="/admin-login" />;
   if (!access.value?.admin) return <Page scope="admin" title="Admin dashboard">
     {access.loading ? <Text style={s.body}>Checking admin access…</Text> : <Card><Text accessibilityRole="alert" style={s.body}>{access.error}</Text><Button title="Retry access" onPress={retry} /><Button title="Return to login" secondary onPress={() => { void logout(); }} /></Card>}
   </Page>;

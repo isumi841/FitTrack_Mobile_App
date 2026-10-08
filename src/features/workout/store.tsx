@@ -4,25 +4,32 @@ import { AppState, Platform } from 'react-native';
 import { api, ApiError, requestKey } from './api';
 import { advance, isFinished, type Session } from './engine';
 import type { Workout } from './data';
+import { useAuth } from '@/features/member1/auth/provider';
 
-type Notice = { id: string; title: string; message: string; read: boolean; createdAt: number; sessionId?: string };
+type Notice = { id: string; title: string; message: string; read: boolean; createdAt: number; sessionId?: string; workoutId?: string; type?: string };
 type Settings = { workSeconds: number; restSeconds: number };
 type Preferences = { notices: Notice[]; notes: Record<string, string>; viewed: Record<string, boolean>; saved: boolean; settings: Settings; customSettings: boolean };
-type Action = 'checkpoint' | 'pause' | 'resume' | 'skip' | 'end' | 'note';
+type Action = 'checkpoint' | 'pause' | 'resume' | 'skip' | 'complete' | 'end' | 'note';
 type Journal = { path: string; method: string; body: Record<string, unknown> };
-const PREFS = 'fittrack:member3:preferences:v2';
-const JOURNAL = 'fittrack:member3:api-pending:v1';
 const defaults: Preferences = { notices: [], notes: {}, viewed: {}, saved: false, settings: { workSeconds: 40, restSeconds: 20 }, customSettings: false };
 function useWorkoutState() {
+  const { session: account } = useAuth();
+  const owner = account?.user.role === 'admin' ? null : account?.user.id;
+  const PREFS = `fittrack:user:${owner}:preferences:v1`;
+  const JOURNAL = `fittrack:user:${owner}:api-pending:v1`;
   const [prefs, setPrefs] = useState(defaults);
   const [session, renderSession] = useState<Session | null>(null);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(!owner);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const [token, updateToken] = useState('');
-  const credential = useRef('');
+  const [recoveryFailed, setRecoveryFailed] = useState(false);
+  const [recoveryAttempt, setRecoveryAttempt] = useState(0);
+  const [recordsVersion, setRecordsVersion] = useState(0);
+  const token = owner ? account?.session.accessToken ?? '' : '';
+  const credential = useRef(token);
+  useEffect(() => { credential.current = token; }, [token]);
   const current = useRef<Session | null>(null);
   const server = useRef<Session | null>(null);
   const journal = useRef<Journal | null>(null);
@@ -35,24 +42,10 @@ function useWorkoutState() {
   const prefsLoaded = useRef(false);
   const setSession = useCallback((value: Session | null) => { current.current = value; renderSession(value); }, []);
   useEffect(() => {
-    let live = true;
-    (async () => {
-      const [raw, old, pendingRaw] = await Promise.all([AsyncStorage.getItem(PREFS), AsyncStorage.getItem('fittrack:member3:workout:v1'), AsyncStorage.getItem(JOURNAL)]);
-      if (!live) return;
-      const parsed = JSON.parse(raw ?? old ?? 'null');
-      // Copy only preferences. Old sample sessions/history/notices are never uploaded.
-      if (parsed) setPrefs({ ...defaults, notes: parsed.notes ?? {}, viewed: parsed.viewed ?? {}, saved: !!parsed.saved, settings: parsed.settings ?? defaults.settings, customSettings: parsed.customSettings ?? (!!parsed.settings && (parsed.settings.workSeconds !== 40 || parsed.settings.restSeconds !== 20)), notices: raw ? parsed.notices ?? [] : [] });
-      prefsLoaded.current = true;
-      if (pendingRaw) { journal.current = JSON.parse(pendingRaw); setPending(true); blocked.current = true; setError('An interrupted API request is recoverable. Enter your token and retry the pending request.'); }
-    })().catch(() => { if (live) { blocked.current = true; setError('Local preferences or recovery data could not be read. Saving is blocked to preserve pending requests. Reload to retry; the stored copy has been preserved.'); } })
-      .finally(() => { if (live) setReady(true); });
-    return () => { live = false; };
-  }, []);
-  useEffect(() => {
     if (!ready || !prefsLoaded.current) return;
     preferenceQueue.current = preferenceQueue.current.catch(() => {}).then(() => AsyncStorage.setItem(PREFS, JSON.stringify(prefs)))
       .catch(() => setError('Local preferences could not be saved. Backend session records are separate.'));
-  }, [prefs, ready]);
+  }, [prefs, ready, PREFS]);
   const notice = useCallback((value: Session) => {
     if (!isFinished(value)) return;
     setPrefs(p => p.notices.some(n => n.sessionId === value.id) ? p : { ...p, notices: [{ id: `api-${value.id}`, sessionId: value.id, title: 'Session saved to backend', message: `${value.completedSets} completed, ${value.skippedSets} skipped. Local-only notification.`, read: false, createdAt: Date.now() }, ...p.notices] });
@@ -60,7 +53,7 @@ function useWorkoutState() {
   const writeJournal = useCallback(async (value: Journal | null) => {
     if (value) { journal.current = value; setPending(true); await AsyncStorage.setItem(JOURNAL, JSON.stringify(value)); }
     else { await AsyncStorage.removeItem(JOURNAL); journal.current = null; setPending(false); }
-  }, []);
+  }, [JOURNAL]);
   const fail = useCallback((err: unknown) => {
     blocked.current = true; wantPause.current = true;
     if (current.current?.status === 'running') setSession({ ...current.current, status: 'paused' });
@@ -87,7 +80,7 @@ function useWorkoutState() {
       if (isFinished(result.session)) delta.current = 0;
       let local = advance(result.session, delta.current, Date.now());
       if (wantPause.current && local.status === 'running') local = { ...local, status: 'paused' };
-      setSession(local); notice(result.session); setError(''); setConflict(false);
+      setSession(local); notice(result.session); if (isFinished(result.session)) setRecordsVersion(n => n + 1); setError(''); setConflict(false);
       if (action === 'resume') lastTick.current = Date.now();
       return true;
     } catch (err) { fail(err); return false; }
@@ -138,31 +131,45 @@ function useWorkoutState() {
       }
       await writeJournal(null);
       blocked.current = false; setConflict(false); setError('');
-      if (result) { server.current = result.session; if (isFinished(result.session)) delta.current = 0; setSession(advance(result.session, delta.current, Date.now())); notice(result.session); }
-      else { server.current = null; setSession(null); delta.current = 0; }
+      const summaryEdit = entry.body.action === 'note' || entry.method === 'DELETE';
+      const affectedId = entry.path.split('/')[2];
+      if (!summaryEdit || current.current?.id === affectedId) {
+        if (result) { server.current = result.session; if (isFinished(result.session)) delta.current = 0; setSession(advance(result.session, delta.current, Date.now())); notice(result.session); }
+        else { server.current = null; setSession(null); delta.current = 0; }
+      }
+      if (entry.method === 'DELETE') setPrefs(p => ({ ...p, notices: p.notices.filter(n => n.sessionId !== affectedId) }));
+      setRecordsVersion(n => n + 1);
+      if (summaryEdit && !current.current) { setReady(false); setRecoveryAttempt(n => n + 1); }
     } catch (err) { fail(err); return false; }
     finally { working.current = false; setBusy(false); }
     wantPause.current = false;
     if (server.current && !isFinished(server.current)) return flush('pause');
     return true;
   }, [fail, flush, notice, setSession, writeJournal]);
-  const start = useCallback(async (workout: Workout): Promise<boolean> => {
-    if (working.current || blocked.current || journal.current) return false;
+  const start = useCallback(async (workout: Workout, options?: { rounds: number; restSeconds: number }): Promise<boolean> => {
+    if (!ready || working.current || blocked.current || journal.current) return false;
+    if (!credential.current) { setError('Log in before starting your workout.'); return false; }
     if (current.current && !isFinished(current.current)) return true;
-    const settings = prefs.customSettings ? prefs.settings : { workSeconds: workout.workSeconds, restSeconds: workout.restSeconds };
-    const entry: Journal = { path: '/workout-sessions', method: 'POST', body: { workoutId: workout.id, requestId: requestKey(), ...settings } };
+    const settings = !workout.managed && prefs.customSettings ? prefs.settings : { workSeconds: workout.workSeconds, restSeconds: workout.restSeconds };
+    const entry: Journal = { path: '/workout-sessions', method: 'POST', body: { workoutId: workout.id, requestId: requestKey(), ...settings, ...options } };
     working.current = true; setBusy(true);
     try {
       await writeJournal(entry);
       const result = await api<{ session: Session }>(entry.path, credential.current, entry.method, entry.body);
       await writeJournal(null); server.current = result.session; delta.current = 0; lastTick.current = Date.now();
       setSession(result.session); setError(''); return true;
-    } catch (err) { fail(err); return false; }
+    } catch (err) {
+      if (err instanceof ApiError && [400, 401, 403, 404, 409].includes(err.status)) {
+        try { await writeJournal(null); setError(err.message); }
+        catch (storageError) { fail(storageError); }
+      } else fail(err);
+      return false;
+    }
     finally { working.current = false; setBusy(false); }
-  }, [fail, prefs.customSettings, prefs.settings, setSession, writeJournal]);
+  }, [fail, prefs.customSettings, prefs.settings, ready, setSession, writeJournal]);
   const loadSession = useCallback(async (id: string): Promise<boolean> => {
     if (working.current || blocked.current || journal.current) return false;
-    if (current.current?.id !== id && current.current?.status === 'running') {
+    if (current.current?.status === 'running') {
       if (!await flush('pause')) return false;
     }
     working.current = true; setBusy(true);
@@ -174,18 +181,71 @@ function useWorkoutState() {
     if (server.current?.status === 'running') return flush('pause');
     return true;
   }, [flush, setSession]);
-  const deleteSummary = useCallback(async (id: string): Promise<boolean> => {
-    if (working.current || blocked.current || journal.current || server.current?.id !== id) return false;
+  const fetchNotices = useCallback(async () => {
+    if (!credential.current) return;
+    try {
+      const res = await api<{ notifications: Notice[]; unread: number }>('/notifications', credential.current);
+      if (Array.isArray(res?.notifications)) {
+        setPrefs(p => {
+          const backendIds = new Set(res.notifications.map(n => n.id));
+          const localOnly = p.notices.filter(n => !backendIds.has(n.id) && n.id.startsWith('api-'));
+          return { ...p, notices: [...res.notifications, ...localOnly] };
+        });
+      }
+    } catch {
+      // Offline or network error - retain local notices
+    }
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    if (!owner) return;
+    (async () => {
+      const [raw, pendingRaw] = await Promise.all([AsyncStorage.getItem(PREFS), AsyncStorage.getItem(JOURNAL)]);
+      if (!live) return;
+      const parsed = JSON.parse(raw ?? 'null');
+      if (parsed) setPrefs({ ...defaults, ...parsed });
+      prefsLoaded.current = true;
+      if (pendingRaw) {
+        journal.current = JSON.parse(pendingRaw); setPending(true); blocked.current = true;
+        setError('Your last save was interrupted. Retry saving to recover your workout.');
+        setRecoveryFailed(false); return;
+      }
+      const result = await api<{ sessions: Session[] }>('/workout-sessions', credential.current);
+      if (!live) return;
+      blocked.current = false;
+      const unfinished = result.sessions.find(value => !isFinished(value));
+      if (unfinished && !await loadSession(unfinished.id) && !journal.current) throw new Error('Session recovery failed.');
+      if (!unfinished) setError('');
+      setRecoveryFailed(false);
+      void fetchNotices();
+    })().catch(() => {
+      if (!live) return;
+      blocked.current = true; setRecoveryFailed(true);
+      setError('We could not restore your saved workout. Check your connection and retry before starting a new session.');
+    }).finally(() => { if (live) setReady(true); });
+    return () => { live = false; };
+  }, [owner, PREFS, JOURNAL, loadSession, recoveryAttempt, fetchNotices]);
+
+
+  const saveSummary = useCallback(async (value: Session, action: 'note' | 'delete', note?: string): Promise<boolean> => {
+    if (working.current || blocked.current || journal.current || !isFinished(value)) return false;
+    if (current.current?.status === 'running' && !await flush('pause')) return false;
     working.current = true; setBusy(true);
-    const entry: Journal = { path: `/workout-sessions/${id}`, method: 'DELETE', body: { revision: server.current.revision } };
+    const entry: Journal = { path: `/workout-sessions/${value.id}`, method: action === 'delete' ? 'DELETE' : 'PATCH',
+      body: { revision: value.revision, ...(action === 'note' ? { operationId: requestKey(), action, deltaMs: 0, note } : {}) } };
     try {
       await writeJournal(entry);
-      await api(entry.path, credential.current, entry.method, entry.body);
-      await writeJournal(null); server.current = null; setSession(null); setError('');
-      setPrefs(p => ({ ...p, notices: p.notices.filter(n => n.sessionId !== id) })); return true;
+      const result = await api<{ session: Session } | undefined>(entry.path, credential.current, entry.method, entry.body);
+      await writeJournal(null);
+      if (current.current?.id === value.id) { server.current = result?.session ?? null; setSession(result?.session ?? null); }
+      if (action === 'delete') setPrefs(p => ({ ...p, notices: p.notices.filter(n => n.sessionId !== value.id) }));
+      setRecordsVersion(n => n + 1); setError('');
+      void fetchNotices();
+      return true;
     } catch (err) { fail(err); return false; }
     finally { working.current = false; setBusy(false); }
-  }, [fail, setSession, writeJournal]);
+  }, [fail, flush, setSession, writeJournal, fetchNotices]);
   const discardConflict = useCallback(async () => {
     const id = journal.current?.path.split('/')[2] ?? server.current?.id;
     if (!id || working.current) return;
@@ -194,25 +254,47 @@ function useWorkoutState() {
       let saved: Session | null = null;
       try { saved = (await api<{ session: Session }>(`/workout-sessions/${id}`, credential.current)).session; }
       catch (err) { if (!(err instanceof ApiError && err.status === 404)) throw err; }
+      const summaryEdit = journal.current?.body.action === 'note' || journal.current?.method === 'DELETE';
       await writeJournal(null); blocked.current = false; delta.current = 0; setConflict(false); setError('');
-      server.current = saved; setSession(saved); wantPause.current = false;
+      if (!summaryEdit || current.current?.id === id) { server.current = saved; setSession(saved); }
+      setRecordsVersion(n => n + 1); wantPause.current = false;
+      if (summaryEdit && !current.current) { setReady(false); setRecoveryAttempt(n => n + 1); }
     } catch (err) { fail(err); return; }
     finally { working.current = false; setBusy(false); }
     if (server.current && !isFinished(server.current)) await flush('pause');
   }, [fail, flush, setSession, writeJournal]);
   return {
-    data: { ...prefs, session }, ready, error, busy, pending, conflict, token,
-    setToken: (value: string) => { if (__DEV__ && !working.current) { pause(); credential.current = value; updateToken(value); } },
-    retrySave, discardConflict, start, pause, loadSession, deleteSummary,
-    resume: () => flush('resume'), skip: () => flush('skip'), finish: () => flush('end'),
-    updateSummary: (id: string, note: string) => server.current?.id === id ? flush('note', note) : Promise.resolve(false),
+    data: { ...prefs, session }, ready, error, busy, pending, conflict, token, recoveryFailed, recordsVersion,
+    retrySave, discardConflict, start, pause, loadSession,
+    retryRecovery: () => { setReady(false); setRecoveryAttempt(n => n + 1); },
+    deleteSummary: (value: Session) => saveSummary(value, 'delete'),
+    prepareSignOut: async () => {
+      if (working.current || journal.current) return false;
+      if (recoveryFailed) return true;
+      if (blocked.current) return false;
+      return current.current && !isFinished(current.current) ? flush('pause') : true;
+    },
+    resume: () => flush('resume'), skip: () => flush('skip'), complete: () => flush('complete'), finish: () => flush('end'),
+    updateSummary: (value: Session, note: string) => saveSummary(value, 'note', note),
     toggleSaved: () => setPrefs(p => ({ ...p, saved: !p.saved })),
     saveNote: (id: string, value: string) => setPrefs(p => ({ ...p, notes: { ...p.notes, [id]: value.trim() } })),
     markViewed: (id: string) => setPrefs(p => ({ ...p, viewed: { ...p.viewed, [id]: true } })),
     saveSettings: (value: Settings) => setPrefs(p => ({ ...p, settings: value, customSettings: true })),
     resetSettings: () => setPrefs(p => ({ ...p, settings: defaults.settings, customSettings: false })),
-    readNotice: (id?: string) => setPrefs(p => ({ ...p, notices: p.notices.map(n => !id || n.id === id ? { ...n, read: true } : n) })),
-    deleteNotice: (id: string) => setPrefs(p => ({ ...p, notices: p.notices.filter(n => n.id !== id) })),
+    refreshNotices: fetchNotices,
+    readNotice: (id?: string) => {
+      setPrefs(p => ({ ...p, notices: p.notices.map(n => !id || n.id === id ? { ...n, read: true } : n) }));
+      if (credential.current) {
+        const path = id ? `/notifications/${id}/read` : '/notifications/read-all';
+        void api(path, credential.current, 'PATCH').catch(() => {});
+      }
+    },
+    deleteNotice: (id: string) => {
+      setPrefs(p => ({ ...p, notices: p.notices.filter(n => n.id !== id) }));
+      if (credential.current) {
+        void api(`/notifications/${id}`, credential.current, 'DELETE').catch(() => {});
+      }
+    },
   };
 }
 const WorkoutContext = createContext<ReturnType<typeof useWorkoutState> | null>(null);

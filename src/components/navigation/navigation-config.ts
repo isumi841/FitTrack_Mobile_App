@@ -9,12 +9,12 @@ export interface NavigationItem {
   matchPaths: readonly string[];
 }
 
-// Reuse this branch's workout routes until the team's Home/Profile destinations merge.
+// Shared destinations for the integrated member modules.
 export const APP_NAV_ITEMS: readonly NavigationItem[] = [
   { id: 'home', label: 'Home', icon: 'home', href: '/', matchPaths: ['/'] },
   { id: 'workouts', label: 'Workouts', icon: 'workouts', href: '/member2/workout', matchPaths: ['/member2', '/workout/details', '/workout/browse', '/workout/instructions', '/workout/video', '/workout/active', '/workout/pause', '/workout/timer'] },
-  { id: 'progress', label: 'Progress', icon: 'progress', href: '/workout/sessions', matchPaths: ['/workout/sessions', '/workout/completed'] },
-  { id: 'profile', label: 'Profile', icon: 'profile', href: '/workout/notifications', matchPaths: ['/workout/notifications'] },
+  { id: 'progress', label: 'Progress', icon: 'progress', href: '/member4/progress', matchPaths: ['/member4/progress', '/member4/progress-details', '/member4/achievements', '/member4/goals', '/member4/workout-history', '/workout/sessions', '/workout/completed'] },
+  { id: 'profile', label: 'Profile', icon: 'profile', href: '/member4/profile', matchPaths: ['/member4/profile', '/member4/edit-profile', '/member4/workout-reminder', '/workout/account', '/workout/notifications'] },
 ];
 
 export interface QuickAction {
@@ -26,9 +26,9 @@ export interface QuickAction {
 }
 
 export const APP_QUICK_ACTIONS: readonly QuickAction[] = [
-  { id: 'goal', label: 'Browse sample workouts', description: 'Choose a temporary test routine', icon: 'goal', href: '/workout/browse' },
+  { id: 'goal', label: 'Set a goal', description: 'Choose your next fitness target', icon: 'goal', href: '/member4/goals?create=1' },
   { id: 'reminder', label: 'Local notifications', description: 'Read this device’s session notices', icon: 'bell', href: '/workout/notifications' },
-  { id: 'progress', label: 'Session history', description: 'Open your saved module test sessions', icon: 'progress', href: '/workout/sessions' },
+  { id: 'progress', label: 'Session history', description: 'Review your saved workout sessions', icon: 'progress', href: '/workout/sessions' },
 ];
 
 /** Longest segment match keeps child routes in the correct tab. */

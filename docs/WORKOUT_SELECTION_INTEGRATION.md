@@ -1,5 +1,10 @@
 # Workout selection → Workout Details
 
+**Latest integration:** saved MongoDB workouts now replace the local selection catalog.
+See [workout backend integration](WORKOUT_BACKEND_INTEGRATION.md) for the imported
+backend commit, database permissions, ID mapping, and current verification. The notes
+below describe the earlier frontend import and its historical fixture contract.
+
 **Current stage:** [Admin exercise management](EXERCISE_MANAGEMENT.md) now supplies the
 editable exercise lineup and user-facing instructions/video. The integration notes below
 describe the earlier selection import; live details now prefer managed exercises from

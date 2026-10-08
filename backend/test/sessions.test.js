@@ -7,6 +7,7 @@ import { createApp } from '../src/app.js';
 import { DEVELOPMENT_OWNER } from '../src/identity.js';
 import { workouts } from '../src/catalog.js';
 import { member2Workouts } from '../../shared/discovery/workouts.ts';
+import { exerciseDuration } from '../../shared/exercise-duration.ts';
 
 // An isolated injected repository. No environment file or MongoDB connection is used.
 import { MemoryRepository } from '../test-support/memory-repository.js';
@@ -106,7 +107,7 @@ test('owner isolation covers list, read, patch, delete and retry-key namespaces'
 
 test('payload allowlists, invalid IDs, ranges, malformed and oversized JSON', async t => {
   const { request, create, patch, base } = await serve(t);
-  for (const extra of [{ ownerId: 'another-user' }, { status: 'completed' }, { workSeconds: '10' }, { workSeconds: 9 }, { restSeconds: 121 }, { requestId: '$bad' }, { workSeconds: null }]) {
+  for (const extra of [{ ownerId: 'another-user' }, { status: 'completed' }, { workSeconds: '10' }, { workSeconds: 9 }, { restSeconds: 121 }, { requestId: '$bad' }, { workSeconds: null }, { rounds: 0 }, { rounds: 6 }, { rounds: 1.5 }, { rounds: '2' }, { rounds: null }]) {
     // Explicit null is not a valid override.
     assert.equal((await create(workouts[0].id, extra)).status, 400);
   }
@@ -188,4 +189,93 @@ test('concurrent replay of the same command applies progress exactly once', asyn
   const replies = await Promise.all(Array.from({ length: 5 }, () => request(`/workout-sessions/${s.id}`, 'PATCH', command)));
   assert.ok(replies.every(r => r.status === 200));
   assert.ok(replies.every(r => r.body.session.revision === 1 && r.body.session.skippedSets === 1 && r.body.session.elapsedMs === 1000));
+});
+
+test('only explicit bounded durations become timers; repetitions and per-side targets remain manual', () => {
+  for (const [target, seconds] of [['3min', 180], [' 30 seconds ', 30], ['1.5 minutes', 90], ['60s', 60], ['1 SEC', 1], ['60min', 3600]]) {
+    assert.equal(exerciseDuration(target), seconds);
+  }
+  for (const target of ['12 reps', '3 x 10', '30s each side', '10-15 reps', '01:30', '0 sec', '-1s', '100min', '0.1sec', 'Infinity s', '']) {
+    assert.equal(exerciseDuration(target), null);
+  }
+});
+
+function managedFixture() {
+  const id = '507f1f77bcf86cd799439011';
+  const record = { _id: id, title: 'Managed workout', category: 'Strength', difficulty: 'Beginner', duration: 15, description: 'Managed plan', exercises: [] };
+  const exercises = [
+    { id: 'timed', name: 'Timed exercise', target: '2 seconds', subtitle: 'Description', steps: ['Follow this step.'], position: 1, createdBy: 'private-admin' },
+    { id: 'manual', name: 'Rep exercise', target: '12 reps', steps: ['Move with control.'], position: 2 },
+  ];
+  return { id, record, exercises, workoutRepository: { get: async key => key.toLowerCase() === id ? record : null }, exerciseRepository: { list: async () => structuredClone(exercises) } };
+}
+
+test('managed workout supports timed/manual targets, rest, multiple rounds, pause and exact-once completion', async t => {
+  const fixture = managedFixture();
+  const { request, create, patch } = await serve(t, fixture);
+  const preview = await request(`/workouts/${fixture.id}/session-plan`, 'GET', undefined, '');
+  assert.equal(preview.status, 200);
+  assert.deepEqual(preview.body.workout.exercises.map(e => e.durationSeconds), [2, null]);
+  assert.equal('createdBy' in preview.body.workout.exercises[0], false);
+  let s = (await create(fixture.id, { rounds: 2, restSeconds: 5 })).body.session;
+  assert.equal(s.snapshot.rounds, 2); assert.equal(s.remainingMs, 2000);
+  assert.equal((await patch(s, 'complete')).status, 409);
+  s = (await patch(s, 'checkpoint', { deltaMs: 2000 })).body.session;
+  assert.equal(s.phase, 1); assert.equal(s.completedSets, 1);
+  s = (await patch(s, 'skip')).body.session;
+  assert.equal(s.phase, 2); assert.equal(s.skippedSets, 0);
+  s = (await patch(s, 'checkpoint', { deltaMs: 15000 })).body.session;
+  assert.equal(s.phase, 2); assert.equal(s.remainingMs, 0); assert.equal(s.elapsedMs, 17000);
+  const command = { revision: s.revision, operationId: randomUUID(), action: 'complete', deltaMs: 1000 };
+  s = (await request(`/workout-sessions/${s.id}`, 'PATCH', command)).body.session;
+  assert.equal(s.phase, 3); assert.equal(s.completedSets, 2);
+  const replay = (await request(`/workout-sessions/${s.id}`, 'PATCH', command)).body.session;
+  assert.deepEqual(replay, s);
+  s = (await patch(s, 'pause', { deltaMs: 1000 })).body.session;
+  assert.equal(s.remainingMs, 4000);
+  assert.equal((await patch(s, 'complete')).status, 409);
+  s = (await patch(s, 'resume')).body.session;
+  s = (await patch(s, 'checkpoint', { deltaMs: 4000 })).body.session;
+  assert.equal(s.phase, 4); assert.equal(s.remainingMs, 2000);
+  s = (await patch(s, 'checkpoint', { deltaMs: 7000 })).body.session;
+  assert.equal(s.phase, 6); assert.equal(s.remainingMs, 0);
+  s = (await patch(s, 'complete', { deltaMs: 3000 })).body.session;
+  assert.equal(s.status, 'completed'); assert.equal(s.phase, 8);
+  assert.equal(s.completedSets, 4); assert.equal(s.skippedSets, 0); assert.equal(s.elapsedMs, 33000);
+  assert.ok(s.finishedAt); assert.ok(!s.completedIntervals.includes(7));
+});
+
+test('a lost create response recovers its original plan after the parent and exercises disappear', async t => {
+  const fixture = managedFixture();
+  const { create, request } = await serve(t, fixture);
+  const requestId = randomUUID();
+  const first = await create(fixture.id, { requestId, rounds: 2, restSeconds: 10 });
+  fixture.exercises[0].name = 'Changed'; fixture.exercises.splice(1);
+  fixture.workoutRepository.get = async () => null;
+  const recovered = await create(fixture.id, { requestId, rounds: 2, restSeconds: 10 });
+  assert.equal(recovered.status, 200); assert.deepEqual(recovered.body.session, first.body.session);
+  assert.equal((await create(fixture.id, { requestId, rounds: 3, restSeconds: 10 })).status, 409);
+  assert.equal((await create(fixture.id)).status, 404);
+  assert.equal((await request(`/workout-sessions/${first.body.session.id}`)).body.session.snapshot.exercises.length, 2);
+});
+
+test('empty or failed exercise storage cannot create a fabricated session plan', async t => {
+  const fixture = managedFixture(); fixture.exercises.length = 0;
+  const { create, request, repository } = await serve(t, fixture);
+  assert.equal((await create(fixture.id)).status, 409);
+  assert.equal((await request(`/workouts/${fixture.id}/session-plan`)).status, 409);
+  fixture.exerciseRepository.list = async () => { throw new Error('private storage failure'); };
+  const failure = await create(fixture.id);
+  assert.equal(failure.status, 503); assert.ok(!JSON.stringify(failure).includes('private storage'));
+  assert.equal(repository.records.size, 0);
+});
+
+test('a skip at the end of a rest interval cannot accidentally skip the following exercise', async t => {
+  const { create, patch } = await serve(t, managedFixture());
+  let s = (await create('507f1f77bcf86cd799439011', { restSeconds: 5 })).body.session;
+  s = (await patch(s, 'checkpoint', { deltaMs: 2000 })).body.session;
+  s = (await patch(s, 'skip', { deltaMs: 5000 })).body.session;
+  assert.equal(s.phase, 2); assert.equal(s.status, 'running'); assert.equal(s.skippedSets, 0);
+  s = (await patch(s, 'skip', { deltaMs: 1000 })).body.session;
+  assert.equal(s.status, 'completed'); assert.equal(s.skippedSets, 1); assert.equal(s.completedSets, 1);
 });

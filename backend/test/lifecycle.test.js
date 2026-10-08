@@ -64,7 +64,7 @@ test('a port already in use closes the new database connection', async t => {
   const second = createService({ config: { ...config, port: server.address().port }, logger, database: {
     connect: async () => {}, ping: async () => true, disconnect: async () => { closed = true; },
   } });
-  await assert.rejects(second.start(), /Backend startup failed/);
+  await assert.rejects(second.start(), /PORT .* is already in use/);
   assert.equal(closed, true);
 });
 

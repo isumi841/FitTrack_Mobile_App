@@ -53,13 +53,14 @@ export default function PersonalizedPlanScreen() {
             <Ionicons name="chevron-back" size={22} color={t.textPrimary} />
             <Text style={[styles.backText, { color: t.textPrimary }]}>Back</Text>
           </Pressable>
-          <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Your Personalized Plan</Text>
+          <View style={{ flex: 1 }} />
           <Pressable style={[styles.profileButton, { borderColor: t.border }]} accessibilityRole="button" accessibilityLabel="Profile">
             <Ionicons name="person-outline" size={18} color={t.textPrimary} />
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.mainHeading, { color: t.textPrimary }]}>Your Personalized Plan</Text>
           <Text style={[styles.basedOn, { color: t.textMuted }]}>BASED ON</Text>
           <View style={styles.chips}>
             {[fitnessLevel, fitnessGoal, time].map((item) => <View key={item} style={[styles.chip, { backgroundColor: t.limeDim }]}><Text style={[styles.chipText, { color: accent }]}>{item}</Text></View>)}
@@ -112,7 +113,8 @@ function NavItem({ icon, label, color, active = false }: { icon: keyof typeof Io
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 }, header: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, headerButton: { width: 58, flexDirection: 'row', alignItems: 'center' }, backText: { fontSize: 12 }, headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', textAlign: 'center' }, profileButton: { width: 34, height: 34, borderWidth: 1, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  safe: { flex: 1 }, header: { minHeight: 56, paddingHorizontal: 16, marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, headerButton: { width: 58, flexDirection: 'row', alignItems: 'center' }, backText: { fontSize: 12 }, headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', textAlign: 'center' }, profileButton: { width: 34, height: 34, borderWidth: 1, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  mainHeading: { fontSize: 28, fontWeight: '900', letterSpacing: -0.5, marginBottom: 24 },
   scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 22 }, basedOn: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 8 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 18 }, chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 }, chipText: { fontSize: 11, fontWeight: '700' },
   card: { borderWidth: 1, borderRadius: 20, overflow: 'hidden', marginBottom: 16 }, imageWrap: { height: 170, position: 'relative' }, image: { width: '100%', height: '100%' }, levelBadge: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10, backgroundColor: '#FFFFFF' }, levelText: { color: '#152018', fontSize: 10, fontWeight: '800' }, cardContent: { padding: 15 }, cardTitle: { fontSize: 19, fontWeight: '800', marginBottom: 5 }, description: { fontSize: 13, lineHeight: 19, marginBottom: 14 }, metadata: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 14 }, meta: { flexDirection: 'row', alignItems: 'center', gap: 4 }, metaText: { fontSize: 11, fontWeight: '600' }, tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, tag: { borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6 }, tagText: { fontSize: 10, fontWeight: '600' },
   primaryButton: { height: 52, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 10 }, primaryText: { fontSize: 14, fontWeight: '800' }, secondaryButton: { height: 50, borderWidth: 1, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, secondaryText: { fontSize: 12, fontWeight: '700' }, alternatives: { gap: 8, marginTop: 12 }, alternativeCard: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: 1, borderRadius: 14, padding: 12 }, alternativeCopy: { flex: 1 }, alternativeTitle: { fontSize: 13, fontWeight: '700' }, alternativeMeta: { fontSize: 11, marginTop: 3 },

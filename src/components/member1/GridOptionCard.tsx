@@ -41,10 +41,10 @@ export function GridOptionCard({ title, description, tag, iconName, selected, on
         style={[
           styles.card,
           {
-            backgroundColor: selected ? t.limeDim : t.cardBg,
-            borderColor: selected ? t.lime : t.cardBorder,
+            backgroundColor: selected ? '#181C26' : '#101218', // Dark blue-grey
+            borderColor: selected ? t.lime : '#242835',
             shadowColor: selected ? t.lime : '#000',
-            shadowOpacity: selected ? 0.16 : 0.05,
+            shadowOpacity: selected ? 0.2 : 0.05,
           },
         ]}>
         {selected && <View pointerEvents="none" style={[styles.selectedAccent, { backgroundColor: t.lime }]} />}

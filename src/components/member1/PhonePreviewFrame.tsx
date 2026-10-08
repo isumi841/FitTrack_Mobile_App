@@ -10,8 +10,8 @@ type PhonePreviewFrameProps = {
 
 // Keep the desktop preview close to a modern handset while leaving a little
 // more breathing room around it in narrower browser windows.
-const PHONE_WIDTH = 376;
-const PHONE_HEIGHT = 814;
+const PHONE_WIDTH = 430;
+const PHONE_HEIGHT = 932;
 
 export function PhonePreviewFrame({
   children,
@@ -42,20 +42,7 @@ export function PhonePreviewFrame({
           </View>
 
           <View style={[styles.screen, { backgroundColor }]}>
-            <View aria-hidden style={styles.statusBar}>
-              <Text style={[styles.time, { color: foregroundColor }]}>9:41</Text>
-              <View style={styles.islandSlot}>
-                <View style={styles.island}>
-                  <View style={styles.speaker} />
-                  <View style={styles.camera} />
-                </View>
-              </View>
-              <View style={styles.statusIcons}>
-                <Ionicons name="cellular" size={16} color={foregroundColor} />
-                <Ionicons name="wifi" size={16} color={foregroundColor} />
-                <Ionicons name="battery-full" size={21} color={foregroundColor} />
-              </View>
-            </View>
+
 
             {/* Chrome stays outside the existing scroll and keyboard containers. */}
             <View style={styles.content}>{children}</View>

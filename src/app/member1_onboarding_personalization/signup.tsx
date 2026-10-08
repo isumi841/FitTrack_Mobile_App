@@ -160,9 +160,25 @@ export default function SignupScreen() {
     setIsSocialSubmitting(true);
     setMessage('');
     try {
-      const result = await handleSocialLogin(provider);
-      if (result.status === 'success') router.replace('/member1_onboarding_personalization/personalized-plan');
-      else setMessage(result.message);
+      if (provider === 'Google') {
+        // Google on signup: just fetch the verified email, don't save a session
+        const result = await handleSocialLogin(provider, { saveSession: false });
+        if (result.status === 'success' && result.user?.email) {
+          setEmail(result.user.email);
+          setPassword('');
+          setConfirmPassword('');
+          setErrors({});
+          setMessage('');
+          requestAnimationFrame(() => passwordRef.current?.focus());
+        } else if (result.status !== 'cancelled') {
+          setMessage(result.message);
+        }
+      } else {
+        // Apple/Facebook: keep existing behavior
+        const result = await handleSocialLogin(provider);
+        if (result.status === 'success') router.replace('/member1_onboarding_personalization/personalized-plan');
+        else setMessage(result.message);
+      }
     } finally {
       setIsSocialSubmitting(false);
     }

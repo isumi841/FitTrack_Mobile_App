@@ -229,6 +229,10 @@ export function adminLogin(payload: LoginRequest, options?: AuthRequestOptions):
   return post('/api/auth/admin/login', payload, (value) => readSessionSuccess(value, payload.email), options);
 }
 
+export function adminSignup(payload: LoginRequest, options?: AuthRequestOptions): Promise<SessionSuccessResponse> {
+  return post('/api/auth/admin/signup', payload, (value) => readSessionSuccess(value, payload.email), options);
+}
+
 export function getCurrentUser(accessToken: string, options?: AuthRequestOptions): Promise<UserSuccessResponse> {
   return post('/api/auth/me', undefined, (value) => readUserSuccess(value), options, accessToken);
 }
@@ -243,13 +247,13 @@ export function createAppleChallenge(): Promise<SocialChallengeResponse> {
   });
 }
 
-export function loginWithApple(payload: { identityToken: string; challengeId: string; displayName?: string }): Promise<SessionSuccessResponse> {
-  return post('/api/auth/social/apple', payload, (value) => readSessionSuccess(value));
+export function loginWithApple(payload: { identityToken: string; challengeId: string; displayName?: string; preview?: boolean }): Promise<SessionSuccessResponse | UserSuccessResponse> {
+  return post('/api/auth/social/apple', payload, (value) => payload.preview ? readUserSuccess(value) : readSessionSuccess(value));
 }
 
 export function exchangeSocialCode(
   provider: 'google' | 'facebook',
-  payload: { code: string; codeVerifier: string; redirectUri: string },
-): Promise<SessionSuccessResponse> {
-  return post(`/api/auth/social/${provider}`, payload, (value) => readSessionSuccess(value));
+  payload: { code: string; codeVerifier: string; redirectUri: string; preview?: boolean },
+): Promise<SessionSuccessResponse | UserSuccessResponse> {
+  return post(`/api/auth/social/${provider}`, payload, (value) => payload.preview ? readUserSuccess(value) : readSessionSuccess(value));
 }

@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
 function httpError(status, message) {
@@ -35,6 +36,52 @@ function createUsersRouter({ config }) {
     try {
       const users = await User.find({}).select('email displayName authProvider isEmailVerified role createdAt').sort({ createdAt: -1 });
       res.json({ success: true, users });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/', requireAdmin, async (req, res, next) => {
+    try {
+      const { email, password, displayName, role, isEmailVerified } = req.body;
+      const existing = await User.findOne({ email }).lean();
+      if (existing) {
+        throw httpError(409, 'User with this email already exists.');
+      }
+      const passwordHash = await bcrypt.hash(password || 'default123', 12);
+      const user = await User.create({
+        email,
+        passwordHash,
+        displayName: displayName || null,
+        role: role || 'user',
+        isEmailVerified: isEmailVerified ?? true,
+      });
+      res.json({ success: true, message: 'User created.', user: { _id: user._id, email: user.email, displayName: user.displayName, role: user.role, isEmailVerified: user.isEmailVerified, createdAt: user.createdAt, authProvider: user.authProvider } });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put('/:id', requireAdmin, async (req, res, next) => {
+    try {
+      const { displayName, role, isEmailVerified, password } = req.body;
+      const updateData = { displayName, role, isEmailVerified };
+      if (password) {
+        updateData.passwordHash = await bcrypt.hash(password, 12);
+      }
+      const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
+      if (!user) throw httpError(404, 'User not found.');
+      res.json({ success: true, message: 'User updated.', user: { _id: user._id, email: user.email, displayName: user.displayName, role: user.role, isEmailVerified: user.isEmailVerified, createdAt: user.createdAt, authProvider: user.authProvider } });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/:id', requireAdmin, async (req, res, next) => {
+    try {
+      const user = await User.findByIdAndDelete(req.params.id);
+      if (!user) throw httpError(404, 'User not found.');
+      res.json({ success: true, message: 'User deleted.' });
     } catch (error) {
       next(error);
     }

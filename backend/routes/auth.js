@@ -414,6 +414,32 @@ function createAuthRouter({
     throw httpError(404, 'Account not found. Please sign up first.');
   });
 
+  router.post('/admin/signup', async (req, res) => {
+    const { password } = req.body ?? {};
+    const email = requirePersonalEmail(req.body?.email);
+    if (typeof password !== 'string' || !password.length) {
+      throw httpError(400, 'Enter a password.');
+    }
+    if (!isPasswordWithinBcryptLimit(password)) {
+      throw httpError(400, 'Password is too long.');
+    }
+
+    const existing = await Admin.findOne({ email }).lean();
+    if (existing) {
+      throw httpError(409, 'An admin account with this email already exists.');
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const admin = await Admin.create({
+      email,
+      passwordHash,
+      role: 'admin',
+      displayName: 'System Admin',
+    });
+
+    res.json({ success: true, message: 'Admin account created.', user: publicAdmin(admin), session: await sessions.issue(admin) });
+  });
+
   router.post('/admin/login', async (req, res) => {
     const { password } = req.body ?? {};
     const email = requirePersonalEmail(req.body?.email);
@@ -537,6 +563,21 @@ function createAuthRouter({
       if (provider === 'apple' && typeof body.displayName === 'string') {
         identity.displayName = body.displayName.trim().slice(0, 200) || null;
       }
+
+      if (body.preview) {
+        return res.json({
+          success: true,
+          message: 'Identity retrieved.',
+          user: {
+            id: 'preview',
+            email: identity.email || null,
+            isEmailVerified: identity.isEmailVerified === true,
+            authProvider: provider,
+            displayName: identity.displayName || null
+          }
+        });
+      }
+
       const user = await socialUser(provider, identity);
       res.json({ success: true, message: 'Login successful.', user: publicUser(user), session: await sessions.issue(user) });
     });

@@ -197,8 +197,8 @@ async function post<T>(
   try {
     // The timeout covers both the fetch and reading its response body.
     return await Promise.race([request(), cancellation]);
-  } catch (error) {
-    if (error instanceof AuthApiError) throw error;
+  } catch (error: any) {
+    if (error?.name === 'AuthApiError') throw error;
     throw new AuthApiError(NETWORK_MESSAGE, 'NETWORK_ERROR');
   } finally {
     clearTimeout(timeout);

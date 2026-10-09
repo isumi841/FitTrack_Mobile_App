@@ -45,6 +45,8 @@ function publicAdmin(admin) {
     email: admin.email,
     role: 'admin',
     displayName: admin.displayName || 'System Admin',
+    isEmailVerified: true,
+    authProvider: 'local',
   };
 }
 

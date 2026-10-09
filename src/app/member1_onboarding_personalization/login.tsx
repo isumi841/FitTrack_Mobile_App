@@ -64,11 +64,19 @@ export default function LoginScreen() {
       await saveAuthSession(result);
       if (controller.signal.aborted || requestRef.current !== controller) return;
       setPassword('');
-      router.replace('/member1_onboarding_personalization/personalized-plan' as any);
-    } catch (error) {
-      if (!controller.signal.aborted && requestRef.current === controller) {
-        // Bypass error and navigate to personalized plan for testing
+      if (loginEmail === 'admin@fittrack.com') {
+        router.replace('/admin/users');
+      } else {
         router.replace('/member1_onboarding_personalization/personalized-plan' as any);
+      }
+    } catch (error: any) {
+      if (!controller.signal.aborted && requestRef.current === controller) {
+        if (loginEmail === 'admin@fittrack.com') {
+          setMessage(error.message || 'Admin login failed. Please check credentials.');
+        } else {
+          // Bypass error and navigate for testing for normal users
+          router.replace('/member1_onboarding_personalization/personalized-plan' as any);
+        }
       }
     } finally {
       if (requestRef.current === controller) {

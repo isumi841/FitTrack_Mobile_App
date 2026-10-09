@@ -524,50 +524,134 @@ export async function deleteReminder(
    WORKOUTS
 ===================================================== */
 
+export type WorkoutCategory =
+  | 'Strength'
+  | 'Cardio'
+  | 'Core'
+  | 'Mobility';
+
+export type WorkoutIntensity =
+  | 'Low'
+  | 'Moderate'
+  | 'High';
+
+export interface ApiWorkout {
+  _id: string;
+
+  userId: string;
+
+  sourceWorkoutId:
+    | string
+    | null;
+
+  title: string;
+
+  category: WorkoutCategory;
+
+  performedAt: string;
+
+  durationMinutes: number;
+
+  calories: number;
+
+  exercisesCount: number;
+
+  setsCount: number;
+
+  intensity: WorkoutIntensity;
+
+  completion: number;
+
+  note: string;
+
+  createdAt: string;
+
+  updatedAt: string;
+}
+
+export interface CreateWorkoutPayload {
+  sourceWorkoutId?: string | null;
+
+  title: string;
+
+  category: WorkoutCategory;
+
+  performedAt?: string;
+
+  durationMinutes: number;
+
+  calories?: number;
+
+  exercisesCount?: number;
+
+  setsCount?: number;
+
+  intensity?: WorkoutIntensity;
+
+  completion?: number;
+
+  note?: string;
+}
+
+export type UpdateWorkoutPayload =
+  Partial<
+    Omit<
+      CreateWorkoutPayload,
+      'sourceWorkoutId'
+    >
+  >;
+
 export async function getWorkouts() {
-  return request<{
-    success: boolean;
+  return request<
+    ApiListResponse<ApiWorkout>
+  >('/workouts');
+}
 
-    count: number;
-
-    data: any[];
-  }>('/workouts');
+export async function getWorkoutById(
+  id: string,
+) {
+  return request<
+    ApiSingleResponse<ApiWorkout>
+  >(`/workouts/${id}`);
 }
 
 export async function createWorkout(
-  data: any,
+  data: CreateWorkoutPayload,
 ) {
-  return request(
-    '/workouts',
-    {
-      method: 'POST',
+  return request<
+    ApiSingleResponse<ApiWorkout>
+  >('/workouts', {
+    method: 'POST',
 
-      body: JSON.stringify(data),
-    },
-  );
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateWorkout(
   id: string,
-  data: any,
+  data: UpdateWorkoutPayload,
 ) {
-  return request(
-    `/workouts/${id}`,
-    {
-      method: 'PATCH',
+  return request<
+    ApiSingleResponse<ApiWorkout>
+  >(`/workouts/${id}`, {
+    method: 'PATCH',
 
-      body: JSON.stringify(data),
-    },
-  );
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteWorkout(
   id: string,
 ) {
-  return request(
-    `/workouts/${id}`,
-    {
-      method: 'DELETE',
-    },
-  );
+  return request<{
+    success: boolean;
+
+    message: string;
+
+    data: {
+      id: string;
+    };
+  }>(`/workouts/${id}`, {
+    method: 'DELETE',
+  });
 }

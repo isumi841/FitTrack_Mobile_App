@@ -5,7 +5,9 @@ import {
   useRef,
   useState,
 } from 'react';
+
 import {
+  Alert,
   Animated,
   Pressable,
   ScrollView,
@@ -14,6 +16,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
+import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
+
+import {
+  getWorkouts,
+  type ApiWorkout,
+} from '@/features/member4/services/member4Service';
+
+
 
 import {
   FitnessIcon,
@@ -28,7 +39,6 @@ import {
   ProfileReveal,
 } from '@/features/member4/components/ProfileMotion';
 
-import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
 
 type WorkoutCategory =
   | 'All'
@@ -61,136 +71,86 @@ const FILTERS: WorkoutCategory[] = [
   'Mobility',
 ];
 
-const HISTORY: WorkoutRecord[] = [
-  {
-    id: 'workout-1',
-    title: 'Full Body Strength',
-    category: 'Strength',
-    date: 'Oct 04, 2026',
-    time: '7:30 AM',
-    duration: 42,
-    calories: 326,
-    exercises: 7,
-    sets: 24,
-    intensity: 'High',
-    completion: 100,
-    icon: 'workouts',
+function getWorkoutIcon(
+  category: ApiWorkout['category'],
+): FitnessIconName {
+  switch (category) {
+    case 'Strength':
+      return 'workouts';
+
+    case 'Cardio':
+      return 'flame';
+
+    case 'Core':
+      return 'activity';
+
+    case 'Mobility':
+      return 'spark';
+
+    default:
+      return 'workouts';
+  }
+}
+
+function mapApiWorkoutToRecord(
+  workout: ApiWorkout,
+): WorkoutRecord {
+  const performedAt =
+    new Date(workout.performedAt);
+
+  return {
+    id: workout._id,
+
+    title: workout.title,
+
+    category: workout.category,
+
+    date:
+      performedAt.toLocaleDateString(
+        'en-US',
+        {
+          month: 'short',
+          day: '2-digit',
+          year: 'numeric',
+        },
+      ),
+
+    time:
+      performedAt.toLocaleTimeString(
+        'en-US',
+        {
+          hour: 'numeric',
+          minute: '2-digit',
+        },
+      ),
+
+    duration:
+      workout.durationMinutes,
+
+    calories:
+      workout.calories,
+
+    exercises:
+      workout.exercisesCount,
+
+    sets:
+      workout.setsCount,
+
+    intensity:
+      workout.intensity,
+
+    completion:
+      workout.completion,
+
+    icon:
+      getWorkoutIcon(
+        workout.category,
+      ),
+
     note:
-      'Strong session. Increased squat reps and finished every planned set.',
-  },
-  {
-    id: 'workout-2',
-    title: 'Morning Core Blast',
-    category: 'Core',
-    date: 'Oct 03, 2026',
-    time: '6:45 AM',
-    duration: 28,
-    calories: 192,
-    exercises: 6,
-    sets: 18,
-    intensity: 'Moderate',
-    completion: 100,
-    icon: 'activity',
-    note:
-      'Good core control. Plank duration improved compared with last week.',
-  },
-  {
-    id: 'workout-3',
-    title: 'HIIT Cardio',
-    category: 'Cardio',
-    date: 'Oct 02, 2026',
-    time: '5:50 PM',
-    duration: 35,
-    calories: 418,
-    exercises: 8,
-    sets: 16,
-    intensity: 'High',
-    completion: 96,
-    icon: 'flame',
-    note:
-      'High-energy session with short recovery periods between rounds.',
-  },
-  {
-    id: 'workout-4',
-    title: 'Upper Body Power',
-    category: 'Strength',
-    date: 'Sep 30, 2026',
-    time: '6:20 PM',
-    duration: 48,
-    calories: 355,
-    exercises: 8,
-    sets: 27,
-    intensity: 'High',
-    completion: 100,
-    icon: 'workouts',
-    note:
-      'Push-up and shoulder volume improved. Strong finish.',
-  },
-  {
-    id: 'workout-5',
-    title: 'Recovery Mobility',
-    category: 'Mobility',
-    date: 'Sep 29, 2026',
-    time: '8:10 PM',
-    duration: 22,
-    calories: 96,
-    exercises: 9,
-    sets: 12,
-    intensity: 'Low',
-    completion: 100,
-    icon: 'spark',
-    note:
-      'Focused on hip, shoulder and lower-back mobility.',
-  },
-  {
-    id: 'workout-6',
-    title: 'Lower Body Strength',
-    category: 'Strength',
-    date: 'Sep 28, 2026',
-    time: '7:00 AM',
-    duration: 46,
-    calories: 341,
-    exercises: 7,
-    sets: 25,
-    intensity: 'High',
-    completion: 92,
-    icon: 'trend-up',
-    note:
-      'Solid leg session. Reduced final set volume because of fatigue.',
-  },
-  {
-    id: 'workout-7',
-    title: 'Quick Cardio Burn',
-    category: 'Cardio',
-    date: 'Sep 27, 2026',
-    time: '4:30 PM',
-    duration: 25,
-    calories: 284,
-    exercises: 6,
-    sets: 14,
-    intensity: 'Moderate',
-    completion: 100,
-    icon: 'flame',
-    note:
-      'Short and efficient cardio session with consistent pace.',
-  },
-  {
-    id: 'workout-8',
-    title: 'Core Stability',
-    category: 'Core',
-    date: 'Sep 25, 2026',
-    time: '6:50 AM',
-    duration: 31,
-    calories: 205,
-    exercises: 7,
-    sets: 20,
-    intensity: 'Moderate',
-    completion: 100,
-    icon: 'activity',
-    note:
-      'Improved control in side planks and slow mountain climbers.',
-  },
-];
+      workout.note,
+  };
+}
 
 function LivePulse() {
   const c = useM4Theme();
@@ -263,6 +223,18 @@ function LivePulse() {
 export default function WorkoutHistoryScreen() {
   const c = useM4Theme();
 
+    const [
+    workouts,
+    setWorkouts,
+  ] =
+    useState<WorkoutRecord[]>([]);
+
+  const [
+    loadingWorkouts,
+    setLoadingWorkouts,
+  ] =
+    useState(true);
+
   const [selectedFilter, setSelectedFilter] =
     useState<WorkoutCategory>('All');
 
@@ -271,26 +243,74 @@ export default function WorkoutHistoryScreen() {
   const [expandedId, setExpandedId] =
     useState<string | null>(null);
 
-  const totalWorkouts = HISTORY.length;
+  const totalWorkouts = workouts.length;
+
+  useEffect(() => {
+  let mounted = true;
+
+  async function loadWorkouts() {
+    try {
+      setLoadingWorkouts(true);
+
+      const response =
+        await getWorkouts();
+
+      if (!mounted) {
+        return;
+      }
+
+      const records =
+        response.data.map(
+          mapApiWorkoutToRecord,
+        );
+
+      setWorkouts(records);
+    } catch (error) {
+      console.error(
+        'Workout history load error:',
+        error,
+      );
+
+      if (mounted) {
+        Alert.alert(
+          'Unable to load workout history',
+          error instanceof Error
+            ? error.message
+            : 'Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setLoadingWorkouts(false);
+      }
+    }
+  }
+
+  void loadWorkouts();
+
+  return () => {
+    mounted = false;
+  };
+}, []);
 
   const totalMinutes = useMemo(
     () =>
-      HISTORY.reduce(
+      workouts.reduce(
         (total, workout) =>
           total + workout.duration,
         0,
       ),
-    [],
+    [workouts],
   );
 
   const totalCalories = useMemo(
     () =>
-      HISTORY.reduce(
+      workouts.reduce(
         (total, workout) =>
           total + workout.calories,
         0,
       ),
-    [],
+    [workouts],
   );
 
   const averageDuration = useMemo(
@@ -303,31 +323,34 @@ export default function WorkoutHistoryScreen() {
   );
 
   const highIntensityCount = useMemo(
-    () =>
-      HISTORY.filter(
-        (workout) =>
-          workout.intensity === 'High',
-      ).length,
-    [],
-  );
+  () =>
+    workouts.filter(
+      (workout) =>
+        workout.intensity === 'High',
+    ).length,
+  [workouts],
+);
 
   const averageCompletion = useMemo(
-    () =>
-      Math.round(
-        HISTORY.reduce(
-          (total, workout) =>
-            total + workout.completion,
-          0,
-        ) /
-          Math.max(HISTORY.length, 1),
-      ),
-    [],
-  );
+  () =>
+    Math.round(
+      workouts.reduce(
+        (total, workout) =>
+          total + workout.completion,
+        0,
+      ) /
+        Math.max(
+          workouts.length,
+          1,
+        ),
+    ),
+  [workouts],
+);
 
   const filteredWorkouts = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return HISTORY.filter((workout) => {
+    return workouts.filter((workout) => {
       const matchesCategory =
         selectedFilter === 'All' ||
         workout.category === selectedFilter;
@@ -349,9 +372,13 @@ export default function WorkoutHistoryScreen() {
         matchesSearch
       );
     });
-  }, [search, selectedFilter]);
+      }, [
+      workouts,
+      search,
+      selectedFilter,
+    ]);
 
-  const latestWorkout = HISTORY[0];
+  const latestWorkout = workouts[0];
 
   function handleBack() {
     if (router.canGoBack()) {
@@ -384,7 +411,77 @@ export default function WorkoutHistoryScreen() {
     }
   }
 
-  return (
+    if (loadingWorkouts) {
+      return (
+        <M4Screen>
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 24,
+            }}
+          >
+            <Text
+              style={{
+                color: c.text,
+                fontSize: 16,
+                fontWeight: '700',
+              }}
+            >
+              Loading workout history...
+            </Text>
+          </View>
+        </M4Screen>
+      );
+    }
+
+    if (!latestWorkout) {
+      return (
+        <M4Screen>
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 24,
+            }}
+          >
+            <FitnessIcon
+              name="workouts"
+              size={42}
+              color={c.teal}
+            />
+
+            <Text
+              style={{
+                color: c.text,
+                fontSize: 18,
+                fontWeight: '800',
+                marginTop: 14,
+              }}
+            >
+              No workouts yet
+            </Text>
+
+            <Text
+              style={{
+                color: c.muted,
+                fontSize: 14,
+                marginTop: 6,
+                textAlign: 'center',
+              }}
+            >
+              Your completed workouts
+              will appear here.
+            </Text>
+          </View>
+        </M4Screen>
+      );
+    }
+
+    return (
+
     <M4Screen>
       {/* HEADER */}
 

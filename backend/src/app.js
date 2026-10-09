@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
+import member1 from './modules/member1/index.js';
 
 import goalRoutes from './modules/member4/routes/goalRoutes.js';
 import profileRoutes from './modules/member4/routes/profileRoutes.js';
@@ -14,6 +15,9 @@ const app = express();
 | GLOBAL MIDDLEWARE
 |--------------------------------------------------------------------------
 */
+
+// Member 1 keeps its CORS, body limits and no-store responses.
+app.use(member1.createMember1Middleware());
 
 app.use(cors());
 

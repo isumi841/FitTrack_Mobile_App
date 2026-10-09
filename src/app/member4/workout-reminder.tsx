@@ -1729,17 +1729,28 @@ function handleDeleteReminder() {
               name="check"
               size={19}
               color={
-                hasChanges
+                canSave
                   ? '#07130F'
                   : c.muted
               }
             />
 
-            {savingReminder
-            ? 'Saving...'
-            : reminderId
-              ? 'Save Changes'
-              : 'Create Reminder'}
+            <Text
+              style={[
+                styles.primaryButtonText,
+                {
+                  color: canSave
+                    ? '#07130F'
+                    : c.muted,
+                },
+              ]}
+            >
+              {savingReminder
+                ? 'Saving...'
+                : reminderId
+                  ? 'Save Changes'
+                  : 'Create Reminder'}
+            </Text>
           </ProfilePressable>
 
           <ProfilePressable

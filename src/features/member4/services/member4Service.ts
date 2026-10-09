@@ -1,11 +1,20 @@
 import { File } from 'expo-file-system';
+import { API_BASE_URL as API_ORIGIN } from '@/config/api';
+import { getAuthSession } from '@/features/member1/auth/session';
 import { fetch as expoFetch } from 'expo/fetch';
 
 const API_BASE_URL =
-  'http://localhost:5001/api/member4';
+  `${API_ORIGIN}/api/member4`;
 
 const DEV_USER_ID =
   '507f1f77bcf86cd799439011';
+
+async function getIdentityHeaders(): Promise<Record<string, string>> {
+  const session = await getAuthSession();
+  return session
+    ? { Authorization: `Bearer ${session.session.accessToken}` }
+    : { 'x-user-id': DEV_USER_ID };
+}
 
 /* =====================================================
    COMMON API TYPES
@@ -110,8 +119,7 @@ async function request<T>(
         'Content-Type':
           'application/json',
 
-        'x-user-id':
-          DEV_USER_ID,
+        ...await getIdentityHeaders(),
 
         ...(options.headers as Record<
           string,
@@ -254,8 +262,7 @@ export async function uploadProfileAvatar(
           Accept:
             'application/json',
 
-          'x-user-id':
-            DEV_USER_ID,
+          ...await getIdentityHeaders(),
         },
 
         body: formData,
@@ -292,8 +299,7 @@ export async function deleteProfileAvatar() {
         method: 'DELETE',
 
         headers: {
-          'x-user-id':
-            DEV_USER_ID,
+          ...await getIdentityHeaders(),
         },
       },
     );
@@ -353,8 +359,7 @@ export async function getProfile() {
         'Content-Type':
           'application/json',
 
-        'x-user-id':
-          DEV_USER_ID,
+        ...await getIdentityHeaders(),
       },
     },
   );

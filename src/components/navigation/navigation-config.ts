@@ -13,7 +13,7 @@ export interface NavigationItem {
 
 /** Shared by all four members. Replace destinations here as feature routes are merged. */
 export const APP_NAV_ITEMS: readonly NavigationItem[] = [
-  { id: 'home', label: 'Home', icon: 'home', href: '/', matchPaths: ['/'] },
+  { id: 'home', label: 'Home', icon: 'home', href: '/member1_onboarding_personalization/personalized-plan', matchPaths: ['/', '/member1_onboarding_personalization/personalized-plan'] },
   {
     id: 'workouts', label: 'Workouts', icon: 'workouts',
     href: '/member4/workout-history', matchPaths: ['/member4/workout-history'],

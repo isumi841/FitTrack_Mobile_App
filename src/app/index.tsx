@@ -102,9 +102,9 @@ export default function Index() {
     glowAnimation.start();
 
     const timer = setTimeout(() => {
-      // Temporary route until Login is connected.
+      // Continue from the existing startup animation into Member 1 onboarding.
       router.replace(
-        '/member4/progress',
+        '/member1_onboarding_personalization',
       );
     }, 2800);
 

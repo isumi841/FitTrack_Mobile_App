@@ -1,5 +1,6 @@
+import { clearAuthSession } from '@/features/member1/auth/session';
 import { router, usePathname } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ADMIN_COLORS } from "@/constants/admin-theme";
 
@@ -108,11 +109,14 @@ export function AdminSidebar({
 
       <Pressable
         style={styles.logoutButton}
-        onPress={() => {
-          // Temporary logout action.
-          // Real admin authentication will be connected later.
-          router.replace("/");
-          onNavigate?.();
+        onPress={async () => {
+          try {
+            await clearAuthSession();
+            router.replace('/member1_onboarding_personalization/login');
+            onNavigate?.();
+          } catch {
+            Alert.alert('Unable to log out', 'Please check your connection and try again.');
+          }
         }}
       >
         <Text style={styles.logoutText}>

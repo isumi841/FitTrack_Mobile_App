@@ -146,6 +146,7 @@ async function post<T>(
   readSuccess: (value: unknown) => T,
   { signal }: AuthRequestOptions = {},
   accessToken?: string,
+  browserSessionMethod?: 'GET' | 'POST' | 'DELETE',
 ): Promise<T> {
   if (signal?.aborted) {
     throw new AuthApiError('Request cancelled.', 'ABORTED');
@@ -168,10 +169,12 @@ async function post<T>(
 
   const request = async () => {
     const response = await fetch(`${API_BASE_URL}${path}`, {
-      method: payload === undefined ? 'GET' : 'POST',
+      method: browserSessionMethod ?? (payload === undefined ? 'GET' : 'POST'),
+      ...(browserSessionMethod ? { credentials: 'include' as const } : {}),
       headers: {
         'Content-Type': 'application/json', Accept: 'application/json',
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(browserSessionMethod ? { 'X-FitTrack-Session': '1' } : {}),
       },
       body: payload === undefined ? undefined : JSON.stringify(payload),
       signal: controller.signal,
@@ -264,4 +267,17 @@ export function exchangeSocialCode(
   payload: { code: string; codeVerifier: string; redirectUri: string; preview?: boolean },
 ): Promise<SessionSuccessResponse | UserSuccessResponse> {
   return post(`/api/auth/social/${provider}`, payload, (value) => payload.preview ? readUserSuccess(value) : readSessionSuccess(value));
+}
+
+// Browser persistence uses an HttpOnly cookie scoped to this endpoint.
+export function saveBrowserSession(accessToken: string): Promise<void> {
+  return post('/api/auth/session', {}, () => undefined, {}, accessToken, 'POST');
+}
+
+export function restoreBrowserSession(): Promise<SessionSuccessResponse> {
+  return post('/api/auth/session', undefined, readSessionSuccess, {}, undefined, 'GET');
+}
+
+export function clearBrowserSession(): Promise<void> {
+  return post('/api/auth/session', undefined, () => undefined, {}, undefined, 'DELETE');
 }

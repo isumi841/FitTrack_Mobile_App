@@ -1,5 +1,7 @@
+import { clearAuthSession } from '@/features/member1/auth/session';
+import { useState } from 'react';
 import { router, type Href } from 'expo-router';
-import { Platform, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 
 import {
   Member4Avatar,
@@ -19,6 +21,7 @@ import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
 
 export default function ProfileScreen() {
 
+  const [signingOut, setSigningOut] = useState(false);
   const c = useM4Theme();
   const dark = useColorScheme() === 'dark';
   const weeklyGoal = mockGoals.find((goal) => goal.type === 'Workouts per week');
@@ -27,8 +30,22 @@ export default function ProfileScreen() {
   const activeGoals = mockGoals.filter((goal) => goal.currentValue < goal.targetValue).length;
 
   const {
-    profile,
+    profile, authUser, setSharedProfile,
   } = useMember4Profile();
+
+  async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await clearAuthSession();
+      setSharedProfile(null);
+      router.replace('/member1_onboarding_personalization/login');
+    } catch {
+      Alert.alert('Unable to log out', 'Please check your connection and try again.');
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
   // Always push detail pages so Back returns here, including shared History routes.
   const open = (href: Href) => router.push(href);
@@ -49,7 +66,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}>
         <ProfileReveal>
           <ProfilePressable label={`Edit profile for ${
-            profile?.fullName || 'FitTrack User'}`} hint="Opens your personal details and fitness focus"
+            profile?.fullName || authUser?.displayName || 'FitTrack User'}`} hint="Opens your personal details and fitness focus"
             testID="profile-edit" onPress={() => open('/member4/edit-profile')} style={styles.hero}>
             <View pointerEvents="none" style={styles.heroOrbit} />
             <View style={styles.heroTop}>
@@ -68,7 +85,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.identityCopy}>
                 <Text style={styles.name}>
-                  {profile?.fullName ||
+                  {profile?.fullName || authUser?.displayName ||
                     'FitTrack User'}
                 </Text>
 
@@ -76,6 +93,9 @@ export default function ProfileScreen() {
                 <Text style={styles.username}>
                 {profile?.username || '@username'}
                 </Text>
+                {!!(authUser?.email || profile?.email) && <Text selectable style={styles.username}>
+                  {authUser?.email || profile?.email}
+                </Text>}
                 <View style={styles.focusTag}>
                   <ProfileIcon name="spark" color={N.accent} size={12} />
                   <Text style={styles.focusText}>
@@ -181,6 +201,10 @@ export default function ProfileScreen() {
               <Text style={[styles.systemText, { color: c.teal }]}>System</Text>
             </View>
           </View>
+          <ProfilePressable label={signingOut ? 'Logging out' : 'Log out'} testID="profile-logout"
+            onPress={signOut} style={styles.settingsRow}>
+            <Text style={[styles.rowTitle, { color: c.text }]}>{signingOut ? 'Logging out…' : 'Log out'}</Text>
+          </ProfilePressable>
           <View style={styles.signature}>
             <Text style={[styles.brand, { color: c.muted }]}>FITTRACK</Text>
             <Text style={[styles.signatureText, { color: c.muted }]}>Your pace. Your progress.</Text>

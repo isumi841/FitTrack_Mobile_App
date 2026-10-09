@@ -1,3 +1,4 @@
+import { rememberEmail } from '@/features/member1/auth/session';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,7 +14,7 @@ import { AuthApiError, resendOtp, verifyEmail } from '@/features/member1/auth/au
 import { clearOtpCooldown, getOtpCooldown, startOtpCooldown } from '@/features/member1/auth/otp-cooldown';
 import { isValidEmail } from '@/features/member1/utils/validation';
 
-const emptyCode = () => Array<string>(6).fill('');
+const emptyCode = () => Array<string>(4).fill('');
 
 export default function VerifyEmailScreen() {
   const focused = useIsFocused();
@@ -61,7 +62,7 @@ export default function VerifyEmailScreen() {
     setOtpError('');
     setFeedback(null);
     if (!otpComplete) {
-      setOtpError('Enter the 6-digit verification code.');
+      setOtpError('Enter the 4-digit verification code.');
       otpRef.current?.focus();
       return;
     }
@@ -72,6 +73,8 @@ export default function VerifyEmailScreen() {
     Keyboard.dismiss();
     try {
       await verifyEmail({ email: pendingEmail, otp }, { signal: controller.signal });
+      if (controller.signal.aborted || requestRef.current !== controller) return;
+      await rememberEmail(pendingEmail);
       if (controller.signal.aborted || requestRef.current !== controller) return;
       setVerifiedEmail(pendingEmail);
       setOtpDigits(emptyCode());
@@ -139,7 +142,7 @@ export default function VerifyEmailScreen() {
             </Text>
             {pendingEmail ? (
               <>
-                <Text style={styles.description}>{verified ? 'Your FitTrack account is ready.' : 'We sent a 6-digit verification code to'}</Text>
+                <Text style={styles.description}>{verified ? 'Your FitTrack account is ready.' : 'We sent a 4-digit verification code to'}</Text>
                 <Text selectable style={styles.email}>{pendingEmail}</Text>
               </>
             ) : (

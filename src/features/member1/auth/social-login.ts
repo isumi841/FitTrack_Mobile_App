@@ -28,7 +28,7 @@ export function useSocialLogin() {
     clientId: 'facebook', responseType: ResponseType.Code, redirectUri, usePKCE: true,
   }, discovery);
 
-  async function handleSocialLogin(provider: SocialProvider, options?: { saveSession?: boolean }): Promise<SocialLoginResult> {
+  async function handleSocialLogin(provider: SocialProvider, options?: { saveSession?: boolean; rememberMe?: boolean }): Promise<SocialLoginResult> {
     const shouldSaveSession = options?.saveSession !== false;
     if (Platform.OS !== 'web' && Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
       return { status: 'unavailable', provider, message: 'Use a FitTrack development build to sign in with social accounts.' };
@@ -73,7 +73,7 @@ export function useSocialLogin() {
           code: response.params.code, codeVerifier: request.codeVerifier, redirectUri, preview: !shouldSaveSession,
         });
       }
-      if (shouldSaveSession && 'session' in result) await saveAuthSession(result);
+      if (shouldSaveSession && 'session' in result) await saveAuthSession(result, { rememberMe: options?.rememberMe ?? true });
       return { status: 'success', provider, message: result.message, user: result.user };
     } catch (error) {
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ERR_REQUEST_CANCELED') {

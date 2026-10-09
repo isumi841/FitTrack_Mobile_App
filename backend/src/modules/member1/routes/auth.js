@@ -44,6 +44,8 @@ function publicAdmin(admin) {
     id: String(admin._id),
     email: admin.email,
     role: 'admin',
+    isEmailVerified: true,
+    authProvider: 'local',
     displayName: admin.displayName || 'System Admin',
   };
 }
@@ -531,30 +533,78 @@ function createAuthRouter({
     res.json({ success: true, message: 'Admin login successful.', user: publicAdmin(admin), session: await sessions.issue(admin) });
   });
 
-  router.get('/me', async (req, res) => {
-    const authorization = req.get('authorization');
-    if (typeof authorization !== 'string' || !/^Bearer [^\s]+$/.test(authorization)) {
+  async function readValidSession(accessToken) {
+    if (typeof accessToken !== 'string' || !accessToken || /\s/.test(accessToken)) {
       throw httpError(401, 'Please log in again.');
     }
     let claims;
-    try { claims = await sessions.verify(authorization.slice(7)); } catch {
+    try { claims = await sessions.verify(accessToken); } catch {
       throw httpError(401, 'Your session has expired or is invalid. Please log in again.');
     }
+    let user;
     if (claims.role === 'admin') {
       const admin = await Admin.findOne({ _id: claims.sub });
-      if (admin) {
-        return res.json({ success: true, message: 'Session is valid.', user: publicAdmin(admin) });
+      const userAdmin = admin ? null : await User.findOne({ _id: claims.sub, role: 'admin' });
+      if (!admin && !userAdmin) throw httpError(401, 'Please log in again.');
+      user = admin ? publicAdmin(admin) : publicUser(userAdmin);
+    } else {
+      const account = await User.findOne({ _id: claims.sub });
+      if (!account || (account.authProvider || 'local') !== claims.provider ||
+          ((account.authProvider || 'local') === 'local' && !account.isEmailVerified)) {
+        throw httpError(401, 'Please log in again.');
       }
-      const userAdmin = await User.findOne({ _id: claims.sub, role: 'admin' });
-      if (!userAdmin) throw httpError(401, 'Please log in again.');
-      return res.json({ success: true, message: 'Session is valid.', user: publicUser(userAdmin) });
+      user = publicUser(account);
     }
-    const user = await User.findOne({ _id: claims.sub });
-    if (!user || (user.authProvider || 'local') !== claims.provider ||
-        ((user.authProvider || 'local') === 'local' && !user.isEmailVerified)) {
-      throw httpError(401, 'Please log in again.');
+    return { success: true, message: 'Session is valid.', user,
+      session: { accessToken, expiresAt: new Date(claims.exp * 1000).toISOString() } };
+  }
+
+  function bearerToken(req) {
+    const authorization = req.get('authorization');
+    return typeof authorization === 'string' && /^Bearer [^\s]+$/.test(authorization)
+      ? authorization.slice(7) : undefined;
+  }
+
+  router.get('/me', async (req, res) => {
+    const { session, ...result } = await readValidSession(bearerToken(req));
+    res.json(result);
+  });
+
+  const cookieName = 'fittrack_session';
+  const cookieOptions = {
+    httpOnly: true, secure: config.production === true, sameSite: 'lax', path: '/api/auth/session',
+  };
+  // This non-simple header forces a CORS preflight for cross-origin browser requests.
+  // The app's existing origin allowlist rejects untrusted sites before this router.
+  router.use('/session', (req, _res, next) => {
+    if (req.get('x-fittrack-session') !== '1') {
+      throw httpError(403, 'Invalid browser session request.');
     }
-    res.json({ success: true, message: 'Session is valid.', user: publicUser(user) });
+    next();
+  });
+  router.post('/session', async (req, res) => {
+    const result = await readValidSession(bearerToken(req));
+    // Keep the server-issued expiry; reopening must not extend a JWT's lifetime.
+    res.cookie(cookieName, result.session.accessToken, {
+      ...cookieOptions, expires: new Date(result.session.expiresAt),
+    });
+    res.json({ success: true, message: 'Sign-in saved.' });
+  });
+  router.get('/session', async (req, res) => {
+    const entry = (req.get('cookie') || '').split(';').map((part) => part.trim())
+      .find((part) => part.startsWith(`${cookieName}=`));
+    let token;
+    try { token = entry && decodeURIComponent(entry.slice(cookieName.length + 1)); } catch { /* Invalid cookie. */ }
+    try {
+      res.json(await readValidSession(token));
+    } catch (error) {
+      if (error.status === 401) res.clearCookie(cookieName, cookieOptions);
+      throw error;
+    }
+  });
+  router.delete('/session', (_req, res) => {
+    res.clearCookie(cookieName, cookieOptions);
+    res.json({ success: true, message: 'Signed out.' });
   });
 
   router.post('/social/challenge', async (req, res) => {

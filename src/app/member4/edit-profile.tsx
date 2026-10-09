@@ -1,3 +1,4 @@
+import { getAuthSession } from '@/features/member1/auth/session';
 import { router } from 'expo-router';
 
 import {
@@ -7,7 +8,6 @@ import {
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -220,10 +220,6 @@ const [
 ] =
   useState(false);
 
-useEffect(() => {
-  void loadProfile();
-}, []);
-
 function getDatePickerValue() {
   if (!profile.dateOfBirth) {
     return new Date(2000, 0, 1);
@@ -285,38 +281,31 @@ function handleDateDismiss() {
   setShowDatePicker(false);
 }
 
+useEffect(() => {
+  let cancelled = false;
 async function loadProfile() {
   try {
-    setLoadingProfile(
-      true,
-    );
+    const session = await getAuthSession();
+    const response = await getProfile();
+    if (cancelled) return;
+    const accountDefaults = { ...EMPTY_PROFILE,
+      email: session?.user.email ?? '', fullName: session?.user.displayName ?? '' };
 
-    const response =
-      await getProfile();
-
-    /*
-     * No profile exists yet.
-     * Keep the form empty.
-     */
+    // Account details already exist even before a separate fitness profile is saved.
     if (!response) {
       setProfileExists(
         false,
       );
 
-      setProfile(
-        EMPTY_PROFILE,
-      );
-
-      setSavedProfile(
-        EMPTY_PROFILE,
-      );
+      setProfile(accountDefaults);
+      setSavedProfile(accountDefaults);
 
       return;
     }
 
     const loadedProfile =
       mapApiProfileToForm(
-        response.data,
+        { ...response.data, email: response.data.email || accountDefaults.email },
       );
 
     setProfile(
@@ -331,6 +320,7 @@ async function loadProfile() {
       true,
     );
   } catch (error) {
+    if (cancelled) return;
     console.error(
       'Load profile error:',
       error,
@@ -344,15 +334,15 @@ async function loadProfile() {
         : 'Please check your backend connection.',
     );
   } finally {
-    setLoadingProfile(
-      false,
-    );
+    if (!cancelled) setLoadingProfile(false);
   }
 }
 
-  const pulse = useRef(
-    new Animated.Value(0),
-  ).current;
+  void loadProfile();
+  return () => { cancelled = true; };
+}, []);
+
+  const [pulse] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const animation = Animated.loop(

@@ -11,7 +11,7 @@ import { PasswordRequirements } from '@/features/member1/components/PasswordRequ
 import { type SocialProvider } from '@/features/member1/components/SocialAuthButton';
 import { AuthApiError, resendOtp, signup, verifyEmail } from '@/features/member1/auth/auth-api';
 import { clearOtpCooldown, getOtpCooldown, startOtpCooldown } from '@/features/member1/auth/otp-cooldown';
-import { saveAuthSession } from '@/features/member1/auth/session';
+import { rememberEmail, saveAuthSession } from '@/features/member1/auth/session';
 import { useSocialLogin } from '@/features/member1/auth/social-login';
 import { AUTH_VALIDATION_MESSAGES, getPasswordByteLength, isStrongPassword, isValidSliitEmail, normalizeEmail } from '@/features/member1/utils/validation';
 
@@ -123,6 +123,8 @@ export default function SignupScreen() {
     try {
       await verifyEmail({ email: pendingEmail, otp: otpDigits.join('') }, { signal: controller.signal });
       if (controller.signal.aborted || requestRef.current !== controller) return;
+      await rememberEmail(pendingEmail);
+      if (controller.signal.aborted) return;
       setVerified(true);
       setOtpDigits(emptyCode());
       clearOtpCooldown(pendingEmail);

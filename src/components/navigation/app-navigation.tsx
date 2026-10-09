@@ -12,7 +12,7 @@ export default function AppNavigation() {
     '/member1_onboarding_personalization/personalized-plan',
     '/member1_onboarding_personalization/workout-session',
   ].includes(pathname);
-  const showBottomNav = !pathname.startsWith('/admin') && (!member1Screen || member1AppScreen);
+  const showBottomNav = pathname !== '/' && !pathname.startsWith('/admin') && (!member1Screen || member1AppScreen);
   const dark = useColorScheme() === 'dark';
   const reducedMotion = useReducedMotion();
   const backgroundColor = dark ? '#0D1117' : '#F5F7FA';

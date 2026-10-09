@@ -9,7 +9,7 @@ import { AuthFeedback, AuthScreenLayout, AuthSocialOptions } from '@/features/me
 import { AUTH_COLORS } from '@/features/member1/components/auth-theme';
 import { type SocialProvider } from '@/features/member1/components/SocialAuthButton';
 import { login } from '@/features/member1/auth/auth-api';
-import { saveAuthSession } from '@/features/member1/auth/session';
+import { getRememberedEmail, saveAuthSession } from '@/features/member1/auth/session';
 import { useSocialLogin } from '@/features/member1/auth/social-login';
 import { AUTH_VALIDATION_MESSAGES, getPasswordByteLength, isValidEmail } from '@/features/member1/utils/validation';
 
@@ -19,11 +19,12 @@ export default function LoginScreen() {
   const { handleSocialLogin } = useSocialLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<FormErrors>({});
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
+  const emailEdited = useRef(false);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const socialLoginPending = useRef(false);
@@ -33,7 +34,12 @@ export default function LoginScreen() {
   useFocusEffect(useCallback(() => {
     setIsSubmitting(false);
     setIsSocialSubmitting(false);
+    let focused = true;
+    void getRememberedEmail().then((savedEmail) => {
+      if (focused && savedEmail && !emailEdited.current) setEmail(savedEmail);
+    }).catch(() => { /* Sign-in remains available when email storage is unavailable. */ });
     return () => {
+      focused = false;
       focusVersion.current += 1;
       requestRef.current?.abort();
       requestRef.current = null;
@@ -61,7 +67,7 @@ export default function LoginScreen() {
     try {
       const result = await login({ email: loginEmail, password }, { signal: controller.signal });
       if (controller.signal.aborted || requestRef.current !== controller) return;
-      await saveAuthSession(result);
+      await saveAuthSession(result, { rememberMe });
       if (controller.signal.aborted || requestRef.current !== controller) return;
       setPassword('');
       router.replace(result.user.role === 'admin' ? '/admin/users' : '/member1_onboarding_personalization/personalized-plan');
@@ -85,11 +91,11 @@ export default function LoginScreen() {
     setMessage('');
     Keyboard.dismiss();
     try {
-      const result = await handleSocialLogin(provider);
+      const result = await handleSocialLogin(provider, { rememberMe });
       if (focusVersion.current !== version) return;
       if (result.status === 'success') {
         setPassword('');
-        router.replace('/member1_onboarding_personalization/personalized-plan');
+        router.replace(result.user.role === 'admin' ? '/admin/users' : '/member1_onboarding_personalization/personalized-plan');
       } else setMessage(result.message);
     } catch (error) {
       if (focusVersion.current === version) {
@@ -116,6 +122,7 @@ export default function LoginScreen() {
           value={email}
           editable={!isSubmitting && !isSocialSubmitting}
           onChangeText={(value) => {
+            emailEdited.current = true;
             setEmail(value);
             setErrors((previous) => ({ ...previous, email: undefined }));
             setMessage('');
@@ -155,6 +162,8 @@ export default function LoginScreen() {
         <Pressable
           accessibilityRole="checkbox"
           accessibilityLabel="Remember me"
+          accessibilityHint="Saves your email and keeps you signed in until your session expires"
+          disabled={isSubmitting || isSocialSubmitting}
           accessibilityState={{ checked: rememberMe }}
           onPress={() => setRememberMe((previous) => !previous)}
           style={styles.rememberButton}>

@@ -6,14 +6,10 @@ import { fetch as expoFetch } from 'expo/fetch';
 const API_BASE_URL =
   `${API_ORIGIN}/api/member4`;
 
-const DEV_USER_ID =
-  '507f1f77bcf86cd799439011';
-
 async function getIdentityHeaders(): Promise<Record<string, string>> {
   const session = await getAuthSession();
-  return session
-    ? { Authorization: `Bearer ${session.session.accessToken}` }
-    : { 'x-user-id': DEV_USER_ID };
+  if (!session) throw new Error('Your session has expired. Please log in again.');
+  return { Authorization: `Bearer ${session.session.accessToken}` };
 }
 
 /* =====================================================

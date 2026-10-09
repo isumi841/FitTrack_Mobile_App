@@ -7,6 +7,7 @@ function createApp({ config, authRouter, usersRouter, rateLimiter = createAuthRa
   app.disable('x-powered-by');
   // Leave trust proxy disabled unless a deployment explicitly trusts its proxy.
   app.use(cors({
+    credentials: true,
     origin(origin, callback) {
       // Native apps and command-line clients do not send a browser Origin.
       if (!origin || config.corsOrigins.includes(origin)) return callback(null, true);

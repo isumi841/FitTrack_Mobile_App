@@ -1,36 +1,31 @@
 import { router } from 'expo-router';
 import {
   useEffect,
-  useRef,
+  useState,
 } from 'react';
 import {
   Animated,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { getStartupRoute } from '@/features/member1/auth/session';
+
 export default function Index() {
-  const opacity = useRef(
-    new Animated.Value(0),
-  ).current;
+  const [startupError, setStartupError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const [opacity] = useState(() => new Animated.Value(0));
 
-  const scale = useRef(
-    new Animated.Value(0.75),
-  ).current;
+  const [scale] = useState(() => new Animated.Value(0.75));
 
-  const translateY = useRef(
-    new Animated.Value(10),
-  ).current;
+  const [translateY] = useState(() => new Animated.Value(10));
 
-  const glowScale = useRef(
-    new Animated.Value(0.9),
-  ).current;
+  const [glowScale] = useState(() => new Animated.Value(0.9));
 
-  const glowOpacity = useRef(
-    new Animated.Value(0),
-  ).current;
+  const [glowOpacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.parallel([
@@ -101,18 +96,26 @@ export default function Index() {
 
     glowAnimation.start();
 
+    let cancelled = false;
+    const destination = getStartupRoute().then(
+      (route) => ({ route, error: '' }),
+      () => ({ route: null, error: 'Unable to restore your sign-in. Check your connection and try again.' }),
+    );
     const timer = setTimeout(() => {
-      // Continue from the existing startup animation into Member 1 onboarding.
-      router.replace(
-        '/member1_onboarding_personalization',
-      );
+      void destination.then(({ route, error }) => {
+        if (cancelled) return;
+        if (route) router.replace(route);
+        else setStartupError(error);
+      });
     }, 2800);
 
     return () => {
+      cancelled = true;
       clearTimeout(timer);
       glowAnimation.stop();
     };
   }, [
+    attempt,
     glowOpacity,
     glowScale,
     opacity,
@@ -182,6 +185,12 @@ export default function Index() {
         </Text>
       </Animated.View>
 
+      {!!startupError && <View style={styles.retry}>
+        <Text style={styles.tagline}>{startupError}</Text>
+        <Pressable accessibilityRole="button" onPress={() => { setStartupError(''); setAttempt((value) => value + 1); }}>
+          <Text style={styles.retryLabel}>Try again</Text>
+        </Pressable>
+      </View>}
       <Animated.Text
         style={[
           styles.footer,
@@ -198,6 +207,8 @@ export default function Index() {
 
 const styles =
   StyleSheet.create({
+    retry: { padding: 24, alignItems: 'center', gap: 12 },
+    retryLabel: { color: '#20E8A4', fontSize: 16, fontWeight: '700', padding: 12 },
     container: {
       flex: 1,
       backgroundColor: '#07130F',

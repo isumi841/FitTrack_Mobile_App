@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { getAuthSession } from '@/features/member1/auth/session';
 import { fetchUsers, createUser, updateUser, deleteUser } from '@/features/member1/auth/users-api';
 import { type AuthUser } from '@/features/member1/auth/auth-api';
 import { MobileScreenContainer } from '@/components/member1/MobileScreenContainer';
 
 export default function UserManagementScreen() {
+  const router = useRouter();
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -101,20 +103,21 @@ export default function UserManagementScreen() {
   );
 
   return (
-    <MobileScreenContainer backgroundColor="#F8F9FA">
+    <MobileScreenContainer backgroundColor="#0A0F0D">
       <View style={styles.header}>
-        <Text style={styles.title}>Users</Text>
-        <TouchableOpacity style={styles.bellIcon}>
-          <Ionicons name="notifications-outline" size={24} color="#333" />
+        <Text style={styles.title}>User Management</Text>
+        <TouchableOpacity style={styles.bellIcon} onPress={() => router.push('/admin/profile')}>
+          <Ionicons name="settings-outline" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.controls}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color="#A0A0A0" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search users..."
+            placeholderTextColor="#A0A0A0"
             value={search}
             onChangeText={setSearch}
           />
@@ -124,7 +127,7 @@ export default function UserManagementScreen() {
           setFormData({ email: '', displayName: '', password: '', role: 'user', isEmailVerified: true });
           setModalVisible(true);
         }}>
-          <Ionicons name="add" size={20} color="#FFF" />
+          <Ionicons name="add" size={20} color="#152018" />
           <Text style={styles.addButtonText}>Add User</Text>
         </TouchableOpacity>
       </View>
@@ -147,24 +150,38 @@ export default function UserManagementScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color="#B8F52A" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={filteredUsers}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: any) => item.id || item._id}
           renderItem={renderUser}
           contentContainerStyle={styles.listContent}
         />
       )}
+
+      <View style={[styles.nav, { backgroundColor: '#171B19' }]}>
+        <NavItem icon="home-outline" label="Home" color="#A0A0A0" />
+        <NavItem icon="barbell-outline" label="Workouts" color="#A0A0A0" />
+        <TouchableOpacity style={styles.addNavButton} onPress={() => {
+          setEditingUser(null);
+          setFormData({ email: '', displayName: '', password: '', role: 'user', isEmailVerified: true });
+          setModalVisible(true);
+        }}>
+          <Ionicons name="add" size={28} color="#152018" />
+        </TouchableOpacity>
+        <NavItem icon="stats-chart-outline" label="Progress" color="#A0A0A0" />
+        <NavItem icon="person" label="Profile" color="#A0A0A0" onPress={() => router.push('/admin/profile')} />
+      </View>
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{editingUser ? 'Edit User' : 'Add User'}</Text>
             
-            <TextInput style={styles.input} placeholder="Display Name" value={formData.displayName} onChangeText={(t) => setFormData({...formData, displayName: t})} />
-            <TextInput style={styles.input} placeholder="Email" value={formData.email} onChangeText={(t) => setFormData({...formData, email: t})} editable={!editingUser} autoCapitalize="none" keyboardType="email-address" />
-            <TextInput style={styles.input} placeholder={editingUser ? "New Password (Optional)" : "Password"} value={formData.password} onChangeText={(t) => setFormData({...formData, password: t})} secureTextEntry />
+            <TextInput style={styles.input} placeholderTextColor="#666" placeholder="Display Name" value={formData.displayName} onChangeText={(t) => setFormData({...formData, displayName: t})} />
+            <TextInput style={styles.input} placeholderTextColor="#666" placeholder="Email" value={formData.email} onChangeText={(t) => setFormData({...formData, email: t})} editable={!editingUser} autoCapitalize="none" keyboardType="email-address" />
+            <TextInput style={styles.input} placeholderTextColor="#666" placeholder={editingUser ? "New Password (Optional)" : "Password"} value={formData.password} onChangeText={(t) => setFormData({...formData, password: t})} secureTextEntry />
             
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.modalButton, styles.modalCancel]} onPress={() => setModalVisible(false)}>
@@ -186,74 +203,88 @@ export default function UserManagementScreen() {
   );
 }
 
+function NavItem({ icon, label, color, active = false, onPress }: { icon: any; label: string; color: string; active?: boolean; onPress?: () => void }) {
+  return (
+    <TouchableOpacity style={[styles.navItem, active && styles.activeNav]} onPress={onPress}>
+      <Ionicons name={icon} size={22} color={color} />
+      <Text style={[styles.navText, { color }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
   },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#111' },
+  title: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
   bellIcon: { padding: 8 },
   controls: {
     flexDirection: 'row', paddingHorizontal: 20, gap: 12, marginBottom: 20,
   },
   searchContainer: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFF', borderRadius: 8, paddingHorizontal: 12,
-    borderWidth: 1, borderColor: '#E0E0E0',
+    backgroundColor: '#1C2921', borderRadius: 12, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: '#26342A',
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, height: 44, fontSize: 15 },
+  searchInput: { flex: 1, height: 48, fontSize: 15, color: '#FFF' },
   addButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#357960', paddingHorizontal: 16, borderRadius: 8,
+    backgroundColor: '#B8F52A', paddingHorizontal: 16, borderRadius: 12,
     gap: 6,
   },
-  addButtonText: { color: '#FFF', fontWeight: '600', fontSize: 15 },
+  addButtonText: { color: '#152018', fontWeight: '700', fontSize: 15 },
   tabs: {
-    flexDirection: 'row', paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#E0E0E0',
+    flexDirection: 'row', paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#26342A',
     marginBottom: 10,
   },
   tab: { paddingVertical: 12, marginRight: 24, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  activeTab: { borderBottomColor: '#357960' },
-  tabText: { fontSize: 14, color: '#666', fontWeight: '500' },
-  activeTabText: { color: '#357960', fontWeight: 'bold' },
+  activeTab: { borderBottomColor: '#B8F52A' },
+  tabText: { fontSize: 14, color: '#A0A0A0', fontWeight: '600' },
+  activeTabText: { color: '#B8F52A', fontWeight: '800' },
   tableHeader: {
     flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
+    borderBottomWidth: 1, borderBottomColor: '#26342A',
   },
-  tableHeaderText: { fontSize: 12, color: '#999', fontWeight: '600' },
+  tableHeaderText: { fontSize: 12, color: '#A0A0A0', fontWeight: '700' },
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
   userCard: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
+    borderBottomWidth: 1, borderBottomColor: '#26342A',
   },
   avatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E0E0',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#26342A',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  avatarText: { fontSize: 16, fontWeight: 'bold', color: '#666' },
+  avatarText: { fontSize: 16, fontWeight: '800', color: '#B8F52A' },
   userInfo: { flex: 2, justifyContent: 'center' },
-  userName: { fontSize: 14, fontWeight: '600', color: '#222', marginBottom: 2 },
-  userEmail: { fontSize: 12, color: '#666' },
+  userName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  userEmail: { fontSize: 13, color: '#A0A0A0' },
   statusBadge: {
     paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
   },
-  statusActive: { backgroundColor: '#E8F5E9' },
-  statusInactive: { backgroundColor: '#FFEBEE' },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  statusTextActive: { color: '#2E7D32' },
-  statusTextInactive: { color: '#C62828' },
+  statusActive: { backgroundColor: 'rgba(184, 245, 42, 0.15)' },
+  statusInactive: { backgroundColor: 'rgba(255, 68, 68, 0.15)' },
+  statusText: { fontSize: 11, fontWeight: '700' },
+  statusTextActive: { color: '#B8F52A' },
+  statusTextInactive: { color: '#FF4444' },
   moreButton: { padding: 8, marginLeft: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '85%', backgroundColor: '#FFF', borderRadius: 12, padding: 24 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, color: '#333' },
-  input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 15 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 10 },
-  modalButton: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 },
-  modalCancel: { backgroundColor: '#F0F0F0' },
-  modalSave: { backgroundColor: '#357960' },
-  modalCancelText: { color: '#666', fontWeight: '600' },
-  modalSaveText: { color: '#FFF', fontWeight: '600' },
-  deleteButton: { marginTop: 24, paddingVertical: 12, alignItems: 'center', backgroundColor: '#FFEBEE', borderRadius: 8 },
-  deleteButtonText: { color: '#C62828', fontWeight: '600' }
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '85%', backgroundColor: '#152018', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: '#26342A' },
+  modalTitle: { fontSize: 22, fontWeight: '800', marginBottom: 20, color: '#FFF' },
+  input: { borderWidth: 1, borderColor: '#26342A', borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 15, color: '#FFF', backgroundColor: '#1C2921' },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  modalButton: { flex: 1, paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
+  modalCancel: { backgroundColor: '#26342A' },
+  modalSave: { backgroundColor: '#B8F52A' },
+  modalCancelText: { color: '#FFF', fontWeight: '700' },
+  modalSaveText: { color: '#152018', fontWeight: '800' },
+  deleteButton: { marginTop: 24, paddingVertical: 16, borderRadius: 14, alignItems: 'center', backgroundColor: 'rgba(255, 68, 68, 0.1)' },
+  deleteButtonText: { color: '#FF4444', fontWeight: '700' },
+  nav: { minHeight: 72, paddingHorizontal: 8, paddingTop: 7, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopLeftRadius: 22, borderTopRightRadius: 22, position: 'absolute', bottom: 0, left: 0, right: 0 },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 12 },
+  activeNav: { backgroundColor: 'rgba(184,245,42,0.12)' },
+  navText: { fontSize: 10, fontWeight: '600' },
+  addNavButton: { width: 50, height: 50, borderRadius: 20, backgroundColor: '#B8F52A', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
 });

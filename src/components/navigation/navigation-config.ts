@@ -16,7 +16,7 @@ export const APP_NAV_ITEMS: readonly NavigationItem[] = [
   { id: 'home', label: 'Home', icon: 'home', href: '/member1_onboarding_personalization/personalized-plan', matchPaths: ['/', '/member1_onboarding_personalization/personalized-plan'] },
   {
     id: 'workouts', label: 'Workouts', icon: 'workouts',
-    href: '/member4/workout-history', matchPaths: ['/member4/workout-history'],
+    href: '/member4/workout-history', matchPaths: ['/member4/workout-history', '/member1_onboarding_personalization/workout-session'],
   },
   {
     id: 'progress', label: 'Progress', icon: 'progress', href: '/member4/progress',

@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ImageBackground, Image, Pressable, StatusBar } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, ImageBackground, Image, Pressable, ScrollView } from 'react-native';
+import { router, useIsFocused } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PrimaryButton } from '@/features/member1/components/PrimaryButton';
 import { MobileScreenContainer } from '@/features/member1/components/MobileScreenContainer';
@@ -9,6 +11,7 @@ const WELCOME_IMAGE = require('@/assets/images/member1/welcome1.png');
 const LOGO_IMAGE = require('@/assets/images/member1/logo-r.png');
 
 export default function WelcomeScreen() {
+  const focused = useIsFocused();
 
   const handleGetStarted = () => {
     router.push('/member1_onboarding_personalization/beginner-onboarding');
@@ -25,11 +28,13 @@ export default function WelcomeScreen() {
         style={styles.container}
         resizeMode="cover"
       >
-        <StatusBar barStyle="light-content" />
+        {focused && <StatusBar style="light" />}
         <LinearGradient
           colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.95)']}
           style={styles.gradientOverlay}
         >
+          <SafeAreaView style={styles.safe}>
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.topSection}>
             <Image
               source={LOGO_IMAGE}
@@ -61,6 +66,8 @@ export default function WelcomeScreen() {
             </Pressable>
           </View>
         </View>
+          </ScrollView>
+          </SafeAreaView>
       </LinearGradient>
     </ImageBackground>
     </MobileScreenContainer>
@@ -74,19 +81,24 @@ const styles = StyleSheet.create({
   },
   gradientOverlay: {
     flex: 1,
+  },
+  safe: { flex: 1 },
+  content: {
+    flexGrow: 1,
     justifyContent: 'space-between',
+    gap: 32,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingVertical: 24,
   },
   topSection: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 16,
   },
   logo: {
-    width: 380,
+    width: '100%',
+    maxWidth: 380,
     height: 160,
-    marginBottom: 60,
+    marginBottom: 32,
   },
   mainHeading: {
     color: '#FFF',
@@ -112,6 +124,7 @@ const styles = StyleSheet.create({
   },
   loginContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,

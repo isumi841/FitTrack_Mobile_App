@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { resetPassword } from '@/features/member1/auth/auth-api';
 import { MobileScreenContainer } from '@/features/member1/components/MobileScreenContainer';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ResetPasswordScreen() {
@@ -43,7 +44,9 @@ export default function ResetPasswordScreen() {
 
   return (
     <MobileScreenContainer backgroundColor="#111">
-      <View style={styles.container}>
+      <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <TouchableOpacity onPress={() => router.replace('/member1_onboarding_personalization/login')} style={styles.backButton}>
           <Text style={styles.backText}>{'< Back to Login'}</Text>
         </TouchableOpacity>
@@ -97,14 +100,17 @@ export default function ResetPasswordScreen() {
             <Text style={styles.buttonText}>Reset Password</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
+      </SafeAreaView>
     </MobileScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  backButton: { position: 'absolute', top: 60, left: 24 },
+  safe: { flex: 1 },
+  container: { flexGrow: 1, padding: 24, justifyContent: 'center' },
+  backButton: { alignSelf: 'flex-start', paddingVertical: 12, marginBottom: 20 },
   backText: { color: '#C0F312', fontSize: 16 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#FFF', marginBottom: 12 },
   subtitle: { fontSize: 16, color: '#AAA', marginBottom: 32, lineHeight: 24 },

@@ -41,7 +41,7 @@ export function AuthScreenLayout({ title, subtitle, image, children }: AuthScree
         <View
           style={styles.flex}
           onLayout={({ nativeEvent: { layout } }) => {
-            // Measure the app viewport, including when it lives in the web phone.
+            // Measure the app viewport, so artwork scales with the available screen height.
             if (layout.height > 0) setHeroHeight(Math.round(layout.height * 0.32));
           }}>
           <KeyboardAvoidingView

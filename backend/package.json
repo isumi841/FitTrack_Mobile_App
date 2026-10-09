@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test:member1": "node --test src/modules/member1/tests/*.test.js",
+    "smtp:verify": "node src/modules/member1/scripts/verify-smtp.js",
+    "test:merge": "node --test src/modules/member1/tests/merge.integration.test.js"
   },
   "keywords": [
     "fittrack",
@@ -23,7 +26,10 @@
     "express": "^5.2.1",
     "mongoose": "^9.10.4",
     "morgan": "^1.12.1",
-    "multer": "^2.4.0"
+    "multer": "^2.4.0",
+    "bcrypt": "^6.0.0",
+    "jose": "^6.2.12",
+    "nodemailer": "^10.0.14"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

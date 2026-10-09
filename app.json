@@ -11,6 +11,7 @@
     "userInterfaceStyle": "automatic",
 
     "ios": {
+    "usesAppleSignIn": true,
     "icon": "./assets/images/fittrack_app_icon.png"
       },
 
@@ -38,7 +39,9 @@
           "resizeMode": "contain"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-apple-authentication",
+      "expo-secure-store"
     ],
 
     "experiments": {

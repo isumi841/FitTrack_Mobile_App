@@ -142,16 +142,10 @@ Testing areas include:
 
 ## 🎓 Academic Information
 
-**Module:** IT3060 – Human-Computer Interaction
+ Home Workout and Fitness-Tracking App for Beginners
 
-**Project:** Home Workout and Fitness-Tracking App for Beginners
+Final Project
 
-**Milestone:** 03
-
-**Institute:** Sri Lanka Institute of Information Technology (SLIIT)
-
-** Year:** 2026
-
----
+ SLIIT 2026
 
 Developed as an academic group project 

@@ -131,7 +131,7 @@ Testing areas include:
 
 ## 👨‍💻 Development Team
 
-| Student ID | Main Contribution |
+| Student ID | Main Contribution | Name 
 |---|---|
 | IT23542938 | Workout, Admin Dashboard and Workout Management | IsumiKumarasinghe
 | IT23539204 | Exercise Management | MininduMaheesha

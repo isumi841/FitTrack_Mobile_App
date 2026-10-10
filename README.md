@@ -1,56 +1,155 @@
-# Welcome to your Expo app 👋
+# 🏋️ Fit Track
+### Home Workout and Fitness-Tracking App for Beginners
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## 📌 Project Overview
 
-## Get started
+Fit Track is a beginner-friendly home workout and fitness-tracking mobile application designed to help users maintain a healthy lifestyle through personalized workouts, exercise guidance, and fitness progress tracking.
 
-1. Install dependencies
+The application provides an interactive platform where users can discover workouts, filter exercises, follow guided workout sessions, manage fitness goals, and monitor their progress.
 
-   ```bash
-   npm install
-   ```
+An Admin Dashboard is also included to manage application users, workouts, exercises, and fitness goals.
 
-2. Start the app
+## ✨ Main Features
 
-   ```bash
-   npx expo start
-   ```
+### 👤 User Application
+- User Registration and Login
+- Email Verification
+- Personalized Fitness Onboarding
+- Workout Categories and Library
+- Workout Search and Duration Filtering
+- Workout Details and Exercise Instructions
+- Exercise Video Demonstrations
+- Active Workout Timer
+- Pause and Resume Workouts
+- Workout History
+- Fitness Progress Tracking
+- Goal Management
+- Achievements and Reminders
+- User Profile Management
 
-In the output, you'll find options to open the app in a
+### 🛠️ Admin Dashboard
+- Admin Dashboard
+- Sidebar Navigation
+- User Management
+- Workout Management
+- Exercise Management
+- Goal and Progress Management
+- Admin Profile and Settings
+- CRUD Operations (Create, Read, Update, Delete)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 💻 Technology Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Technology | Purpose |
+|---|---|
+| React Native | Mobile Application Development |
+| Expo | Application Development and Testing |
+| TypeScript | Frontend Development |
+| Expo Router | Application Navigation |
+| Node.js | Backend Runtime |
+| Express.js | REST API Development |
+| MongoDB Atlas | Database |
+| Mongoose | Database Models |
+| Figma | UI/UX Design |
+| Git & GitHub | Version Control |
 
-## Get a fresh project
+## 🏗️ System Architecture
 
-When you're ready, run:
+The application follows a three-layer architecture:
+
+1. **Presentation Layer:** React Native and Expo mobile application.
+2. **Application Layer:** Node.js and Express.js REST API.
+3. **Data Layer:** MongoDB Atlas database.
+
+**Data Flow:**
+
+User → Mobile Application → REST API → Backend Server → MongoDB → Response → Mobile Application
+
+## 🚀 Installation and Setup
+
+### Prerequisites
+
+- Node.js and npm
+- Visual Studio Code
+- Git
+- Expo Go or a supported device/emulator
+- MongoDB Atlas connection
+
+### Clone the Repository
 
 ```bash
-npm run reset-project
+git clone <repository-url>
+cd <project-folder>
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Install Dependencies
 
-### Other setup steps
+```bash
+npm install
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Start the Frontend
 
-## Learn more
+Run the following command from the frontend project directory:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npx expo start
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+To launch the web version:
 
-## Join the community
+```bash
+npx expo start --web
+```
 
-Join our community of developers creating universal apps.
+### Start the Backend
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Navigate to the backend directory and install dependencies:
+
+```bash
+npm install
+```
+
+Configure the required environment variables in `.env` according to the backend setup.
+
+Start the backend using the script configured in its `package.json`.
+
+**Note:** Never commit `.env` files, database credentials, or API secrets to GitHub.
+
+## 🧪 Testing
+
+The application is evaluated using functional and usability testing.
+
+Testing areas include:
+
+- User authentication
+- Screen navigation
+- Workout searching and filtering
+- Workout session controls
+- Progress and goal management
+- Admin CRUD operations
+- User interface usability
+
+## 👨‍💻 Development Team
+
+| Student ID | Main Contribution |
+|---|---|
+| IT23542938 | Workout, Admin Dashboard and Workout Management | IsumiKumarasinghe
+| IT23539204 | Exercise Management | MininduMaheesha
+| IT23537538 | Authentication and User Management |DilankaJayaweera
+| IT23545526 | Goal and Progress Management |DevAdithya
+
+## 🎓 Academic Information
+
+**Module:** IT3060 – Human-Computer Interaction
+
+**Project:** Home Workout and Fitness-Tracking App for Beginners
+
+**Milestone:** 03
+
+**Institute:** Sri Lanka Institute of Information Technology (SLIIT)
+
+** Year:** 2026
+
+---
+
+Developed as an academic group project 

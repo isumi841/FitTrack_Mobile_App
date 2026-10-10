@@ -129,14 +129,16 @@ Testing areas include:
 - Admin CRUD operations
 - User interface usability
 
-## 👨‍💻 Development Team
 
-| Student ID | Main Contribution | Name 
-|---|---|
-| IT23542938 | Workout, Admin Dashboard and Workout Management | IsumiKumarasinghe
-| IT23539204 | Exercise Management | MininduMaheesha
-| IT23537538 | Authentication and User Management |DilankaJayaweera
-| IT23545526 | Goal and Progress Management |DevAdithya
+## 👩‍💻 Development Team
+
+| Student ID | Main Contribution | Name |
+|---|---|---|
+| IT23542938 | Workout, Admin Dashboard and Workout Management | Isumi Kumarasinghe |
+| IT23539204 | Exercise Management | Minindu Maheesha |
+| IT23537538 | Authentication and User Management | Dilanka Jayaweera |
+| IT23545526 | Goal and Progress Management | Dev Adithya |
+  
 
 ## 🎓 Academic Information
 

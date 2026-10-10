@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   statusTextInactive: { color: '#FF4444' },
   moreButton: { padding: 8, marginLeft: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '85%', backgroundColor: '#152018', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: '#26342A' },
+  modalContent: { width: '90%', maxWidth: 400, backgroundColor: '#152018', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: '#26342A' },
   modalTitle: { fontSize: 22, fontWeight: '800', marginBottom: 20, color: '#FFF' },
   input: { borderWidth: 1, borderColor: '#26342A', borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 15, color: '#FFF', backgroundColor: '#1C2921' },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },

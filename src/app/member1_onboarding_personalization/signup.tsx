@@ -170,24 +170,11 @@ export default function SignupScreen() {
     setIsSocialSubmitting(true);
     setMessage('');
     try {
-      if (provider === 'Google') {
-        // Google on signup: just fetch the verified email, don't save a session
-        const result = await handleSocialLogin(provider, { saveSession: false });
-        if (result.status === 'success' && result.user.email && result.user.isEmailVerified) {
-          setEmail(result.user.email);
-          setPassword('');
-          setConfirmPassword('');
-          setErrors({});
-          setMessage('');
-          requestAnimationFrame(() => passwordRef.current?.focus());
-        } else if (result.status !== 'cancelled') {
-          setMessage(result.status === 'success' ? 'Choose a Google account with a verified email address.' : result.message);
-        }
-      } else {
-        // Apple/Facebook: keep existing behavior
-        const result = await handleSocialLogin(provider);
-        if (result.status === 'success') router.replace(authDestination(result));
-        else setMessage(result.message);
+      const result = await handleSocialLogin(provider);
+      if (result.status === 'success') {
+        router.replace(authDestination(result));
+      } else if (result.status !== 'cancelled') {
+        setMessage(result.message);
       }
     } finally {
       setIsSocialSubmitting(false);

@@ -534,7 +534,11 @@ function createAuthRouter({
           throw httpError(409, ORIGINAL_METHOD_MESSAGE);
         }
         if (await EmailVerification.findOne({ email: identity.email }).select('_id').lean()) {
-          throw httpError(409, ORIGINAL_METHOD_MESSAGE);
+          if (identity.isEmailVerified) {
+            await EmailVerification.deleteMany({ email: identity.email });
+          } else {
+            throw httpError(409, ORIGINAL_METHOD_MESSAGE);
+          }
         }
       }
       const existing = await User.findOne(identityKey);

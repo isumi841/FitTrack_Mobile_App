@@ -76,7 +76,11 @@ function loadConfig(env = process.env) {
   if (Buffer.byteLength(jwtSecret, 'utf8') < 32) {
     throw new Error('JWT_SECRET must contain at least 32 UTF-8 bytes of random secret material.');
   }
-  const callbackBaseUrl = (env.SOCIAL_CALLBACK_BASE_URL || '').trim().replace(/\/$/, '');
+  const port = positiveInteger(env, 'PORT', 5000, 65535);
+  let callbackBaseUrl = (env.SOCIAL_CALLBACK_BASE_URL || '').trim().replace(/\/$/, '');
+  if (!callbackBaseUrl && !production && (env.GOOGLE_CLIENT_ID || env.FACEBOOK_APP_ID)) {
+    callbackBaseUrl = `http://localhost:${port}`;
+  }
   if (callbackBaseUrl) {
     let callback;
     try { callback = new URL(callbackBaseUrl); } catch {
@@ -87,7 +91,14 @@ function loadConfig(env = process.env) {
       throw new Error('SOCIAL_CALLBACK_BASE_URL must be an HTTPS API origin (localhost HTTP allowed in development).');
     }
   }
-  const redirectUris = values(env, 'AUTH_REDIRECT_URIS');
+  let redirectUris = values(env, 'AUTH_REDIRECT_URIS');
+  if (!redirectUris.length && !production) {
+    redirectUris = [
+      'fittrackmobileapp://member1_onboarding_personalization/oauth-callback',
+      'http://localhost:8081/member1_onboarding_personalization/oauth-callback',
+      'http://localhost:8082/member1_onboarding_personalization/oauth-callback',
+    ];
+  }
   for (const uri of redirectUris) {
     let redirect;
     try { redirect = new URL(uri); } catch { throw new Error('AUTH_REDIRECT_URIS must contain absolute redirect URIs.'); }
@@ -104,7 +115,7 @@ function loadConfig(env = process.env) {
 
   return {
     production,
-    port: positiveInteger(env, 'PORT', 5000, 65535),
+    port,
     mongodbUri,
     otpExpiryMinutes: positiveInteger(env, 'OTP_EXPIRY_MINUTES', 5, 60),
     corsOrigins,

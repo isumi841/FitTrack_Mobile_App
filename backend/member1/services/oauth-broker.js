@@ -30,6 +30,20 @@ function equalHash(first, second) {
     timingSafeEqual(Buffer.from(first), Buffer.from(second));
 }
 
+function isAllowedRedirectUri(redirectUri, configuredUris = [], production = false) {
+  if (Array.isArray(configuredUris) && configuredUris.includes(redirectUri)) return true;
+  if (!production && typeof redirectUri === 'string') {
+    if (redirectUri.startsWith('fittrackmobileapp://') || redirectUri.startsWith('exp://')) return true;
+    try {
+      const u = new URL(redirectUri);
+      if (u.pathname.includes('oauth-callback')) return true;
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+}
+
 /**
  * Providers return codes to this confidential server, never to a Google native
  * custom scheme. The app receives a 60-second, single-use, PKCE-bound handoff.

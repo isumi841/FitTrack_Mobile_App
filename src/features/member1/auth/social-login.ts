@@ -30,11 +30,13 @@ export function useSocialLogin() {
 
   async function handleSocialLogin(provider: SocialProvider, options?: { saveSession?: boolean }): Promise<SocialLoginResult> {
     const shouldSaveSession = options?.saveSession !== false;
-    if (Platform.OS !== 'web' && Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
-      return { status: 'unavailable', provider, message: 'Use a FitTrack development build to sign in with social accounts.' };
-    }
-    if (provider === 'Apple' && Platform.OS !== 'ios') {
-      return { status: 'unavailable', provider, message: 'Sign in with Apple is available on supported iOS devices. Please use Google, Facebook, or your SLIIT account.' };
+    if (provider === 'Apple') {
+      if (Platform.OS !== 'ios') {
+        return { status: 'unavailable', provider, message: 'Sign in with Apple is available on supported iOS devices. Please use Google, Facebook, or your SLIIT account.' };
+      }
+      if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+        return { status: 'unavailable', provider, message: 'Sign in with Apple requires a FitTrack development build.' };
+      }
     }
 
     try {

@@ -51,17 +51,23 @@ export function WorkoutText({
   muted = false,
   style,
   accessibilityRole,
+  numberOfLines,
+  ellipsizeMode,
 }: {
   children: ReactNode;
   weight?: keyof typeof WorkoutFonts;
   muted?: boolean;
   style?: StyleProp<TextStyle>;
   accessibilityRole?: TextProps['accessibilityRole'];
+  numberOfLines?: TextProps['numberOfLines'];
+  ellipsizeMode?: TextProps['ellipsizeMode'];
 }) {
   const theme = useTheme();
   return (
     <Text
       accessibilityRole={accessibilityRole}
+      numberOfLines={numberOfLines}
+      ellipsizeMode={ellipsizeMode}
       style={[
         {
           fontFamily: WorkoutFonts[weight],

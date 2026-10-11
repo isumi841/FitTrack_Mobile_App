@@ -24,10 +24,13 @@ function useActivityState() {
   const stats = useMemo(() => {
     const since = asOf - 7 * 86400000;
     const week = sessions.filter(session => (session.finishedAt ?? session.startedAt) >= since);
-    const weeklyTarget = goals.find(goal => goal.goalType === 'workoutsPerWeek' && goal.status === 'active')?.target ?? 0;
-    return { workoutsCompleted: week.length, workoutsTarget: weeklyTarget, totalMinutes: Math.round(week.reduce((sum, session) => sum + session.elapsedMs, 0) / 60000),
-      targetMinutes: goals.find(goal => goal.goalType === 'workoutMinutes' && goal.status === 'active')?.target ?? 0,
-      caloriesBurned: 0, streakDays: 0, weeklyCompletionPct: weeklyTarget ? Math.min(100, Math.round(week.length / weeklyTarget * 100)) : 0 };
+    const weeklyTarget = goals.find(goal => goal.goalType === 'workoutsPerWeek' && (goal.status === 'active' || goal.status === 'completed'))?.target ?? 0;
+    const targetMinutes = goals.find(goal => goal.goalType === 'workoutMinutes' && (goal.status === 'active' || goal.status === 'completed'))?.target ?? 0;
+    const totalMinutes = Math.round(week.reduce((sum, session) => sum + session.elapsedMs, 0) / 60000);
+    const caloriesBurned = Math.round(totalMinutes * 8.5);
+    return { workoutsCompleted: week.length, workoutsTarget: weeklyTarget, totalMinutes,
+      targetMinutes,
+      caloriesBurned, streakDays: 0, weeklyCompletionPct: weeklyTarget ? Math.min(100, Math.round(week.length / weeklyTarget * 100)) : 0 };
   }, [sessions, goals, asOf]);
   return { sessions, goals, stats, loading, error, refresh };
 }

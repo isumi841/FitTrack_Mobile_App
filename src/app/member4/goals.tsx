@@ -2,8 +2,11 @@ import { useMember4Alert } from '@/features/member4/context/Member4Alerts';
 import { useAppViewport as useWindowDimensions } from '@/components/layout/mobile-viewport';
 import {
   router,
+  useFocusEffect,
   useLocalSearchParams,
 } from 'expo-router';
+import { computeGoalProgress } from '@/features/member4/data/session-activity';
+import type { Session } from '@/features/workout/engine';
 
 import {
   useEffect,
@@ -192,6 +195,7 @@ function buildRemainingLabel(
 
 function mapApiGoalToGoal(
   apiGoal: ApiGoal,
+  sessions: readonly Session[] = [],
 ): Goal {
   const type =
     API_TYPE_TO_GOAL[
@@ -201,8 +205,9 @@ function mapApiGoalToGoal(
   const targetValue =
     apiGoal.target;
 
+  const dynamicCurrent = computeGoalProgress(apiGoal, sessions);
   const currentValue =
-    apiGoal.current ?? 0;
+    Math.max(dynamicCurrent, apiGoal.current ?? 0);
 
   const progressPct =
     Math.min(
@@ -264,7 +269,7 @@ export default function GoalsScreen() {
   const compact =
     width < 370;
 
-  const { stats, refresh: refreshActivity } = useMember4Activity();
+  const { sessions, stats, refresh: refreshActivity } = useMember4Activity();
 
   const { create } =
     useLocalSearchParams<{
@@ -272,9 +277,9 @@ export default function GoalsScreen() {
     }>();
 
   const [
-    goals,
-    setGoals,
-  ] = useState<Goal[]>([]);
+    rawGoals,
+    setRawGoals,
+  ] = useState<ApiGoal[]>([]);
 
   const [
     loadingGoals,
@@ -291,26 +296,22 @@ export default function GoalsScreen() {
       null,
     );
 
+  const goals = useMemo(
+    () => rawGoals.map((apiGoal) => mapApiGoalToGoal(apiGoal, sessions)),
+    [rawGoals, sessions],
+  );
+
   /* =====================================================
      LOAD GOALS FROM MONGODB
   ===================================================== */
 
-  
-
   const loadGoals = useCallback(async () => {
     try {
-      
-
       const response =
         await getGoals();
 
-      const mappedGoals =
-        response.data.map(
-          mapApiGoalToGoal,
-        );
-
-      setGoals(
-        mappedGoals,
+      setRawGoals(
+        response.data,
       );
     } catch (error) {
       console.error(
@@ -331,7 +332,26 @@ export default function GoalsScreen() {
       );
     }
   }, [Alert]);
- useEffect(() => { void Promise.resolve().then(loadGoals); }, [loadGoals]);
+
+  useEffect(() => { void Promise.resolve().then(loadGoals); }, [loadGoals]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshActivity();
+      void loadGoals();
+    }, [refreshActivity, loadGoals]),
+  );
+
+  // Sync any goal progress changes to MongoDB in the background
+  useEffect(() => {
+    if (!rawGoals.length || !sessions.length) return;
+    for (const apiGoal of rawGoals) {
+      const computed = computeGoalProgress(apiGoal, sessions);
+      if (computed > (apiGoal.current ?? 0)) {
+        void updateGoal(apiGoal._id, { current: computed }).catch(() => {});
+      }
+    }
+  }, [rawGoals, sessions]);
 
 
 
@@ -541,23 +561,15 @@ export default function GoalsScreen() {
           payload,
         );
 
+      setRawGoals((current) =>
+        current.map((g) => (g._id === response.data._id ? response.data : g)),
+      );
+
       const updatedGoal =
         mapApiGoalToGoal(
           response.data,
+          sessions,
         );
-
-      setGoals(
-        (
-          currentGoals,
-        ) =>
-          currentGoals.map(
-            (goal) =>
-              goal.id ===
-              updatedGoal.id
-                ? updatedGoal
-                : goal,
-          ),
-      );
 
       setEditGoal(
         updatedGoal,
@@ -577,20 +589,8 @@ export default function GoalsScreen() {
         current: 0,
       });
 
-    const createdGoal =
-      mapApiGoalToGoal(
-        response.data,
-      );
-
+    setRawGoals((current) => [...current, response.data]);
     void refreshActivity();
-    setGoals(
-      (
-        currentGoals,
-      ) => [
-        ...currentGoals,
-        createdGoal,
-      ],
-    );
   }
 
   /* =====================================================
@@ -600,22 +600,21 @@ export default function GoalsScreen() {
   async function handleDeleteGoal(
     goal: Goal,
   ) {
-    await deleteGoal(
-      goal.id,
-    );
+    try {
+      await deleteGoal(
+        goal.id,
+      );
+    } catch (error: unknown) {
+      const status = (error as { status?: number })?.status;
+      const msg = error instanceof Error ? error.message : '';
+      if (status !== 404 && !msg.toLowerCase().includes('not found')) {
+        throw error;
+      }
+    }
 
     void refreshActivity();
-    setGoals(
-      (
-        currentGoals,
-      ) =>
-        currentGoals.filter(
-          (
-            currentGoal,
-          ) =>
-            currentGoal.id !==
-            goal.id,
-        ),
+    setRawGoals((current) =>
+      current.filter((g) => g._id !== goal.id),
     );
 
     if (

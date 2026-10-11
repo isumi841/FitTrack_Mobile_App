@@ -1,6 +1,8 @@
 // Adapted from member4_progress_motivation 61893fb; uses the shared ODM and JWT identity.
 import { Router } from 'express';
 import { v2 as cloudinary } from 'cloudinary';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 import { goalSchema } from './models/Goal.js';
 import { userProfileSchema } from './models/UserProfile.js';
 import { workoutReminderSchema } from './models/WorkoutReminder.js';
@@ -8,6 +10,8 @@ import { goalControllers } from './goal-controllers.js';
 import { profileControllers } from './profile-controllers.js';
 import { reminderControllers } from './reminder-controllers.js';
 import { avatarUpload } from './avatar-upload.js';
+
+const ENV_FILE = fileURLToPath(new URL('../../.env', import.meta.url));
 
 export function createMember4Models(odm) {
   const models = {};
@@ -18,8 +22,40 @@ export function createMember4Models(odm) {
 }
 
 export function createMember4({ models, avatar = cloudinary, env = process.env }) {
-  const ready = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'].every(key => env[key]?.trim());
-  if (ready) avatar.config({ cloud_name: env.CLOUDINARY_CLOUD_NAME, api_key: env.CLOUDINARY_API_KEY, api_secret: env.CLOUDINARY_API_SECRET, secure: true });
+  const isCloudinaryReady = () => {
+    if (env !== process.env) {
+      const ok = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'].every(key => env[key]?.trim());
+      if (ok) {
+        avatar.config({
+          cloud_name: env.CLOUDINARY_CLOUD_NAME.trim(),
+          api_key: env.CLOUDINARY_API_KEY.trim(),
+          api_secret: env.CLOUDINARY_API_SECRET.trim(),
+          secure: true,
+        });
+      }
+      return ok;
+    }
+
+    let ok = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'].every(key => (env[key] || process.env[key])?.trim());
+    if (!ok) {
+      try {
+        dotenv.config({ path: ENV_FILE, override: true });
+        ok = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'].every(key => (env[key] || process.env[key])?.trim());
+      } catch {
+        // file missing or unreadable
+      }
+    }
+    if (ok) {
+      avatar.config({
+        cloud_name: (env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME).trim(),
+        api_key: (env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY).trim(),
+        api_secret: (env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET).trim(),
+        secure: true,
+      });
+    }
+    return ok;
+  };
+  isCloudinaryReady();
   const router = Router();
   router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -45,7 +81,7 @@ export function createMember4({ models, avatar = cloudinary, env = process.env }
   router.route('/goals').get(goals.getGoals).post(goals.createGoal);
   router.route('/goals/:id').get(goals.getGoalById).patch(goals.updateGoal).delete(goals.deleteGoal);
   router.route('/profile').get(profile.getProfile).post(profile.createProfile).patch(profile.updateProfile).delete(profile.deleteProfile);
-  router.post('/profile/avatar', (_req, res, next) => ready ? next() : res.status(503).json({ message: 'Profile photo uploads are not configured yet.' }), avatarUpload, profile.uploadProfileAvatar);
+  router.post('/profile/avatar', (_req, res, next) => isCloudinaryReady() ? next() : res.status(503).json({ message: 'Profile photo uploads are not configured yet.' }), avatarUpload, profile.uploadProfileAvatar);
   router.delete('/profile/avatar', profile.deleteProfileAvatar);
   router.route('/reminders').get(reminders.getReminders).post(reminders.createReminder);
   router.route('/reminders/:id').get(reminders.getReminderById).patch(reminders.updateReminder).delete(reminders.deleteReminder);

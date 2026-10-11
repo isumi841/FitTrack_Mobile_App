@@ -100,6 +100,20 @@ test('expired, altered, deleted and unverified member sessions fail closed', asy
   assert.equal((await request(path, 'GET', undefined, token)).status, 401);
 });
 
+test('password reset session versions revoke member and user-backed admin access', async t => {
+  const { request, login, users } = await harness(t);
+  const old = (await login('member1@example.test')).body.session.accessToken;
+  users[0].sessionVersion = 1;
+  assert.equal((await request('/member3/workout-sessions', 'GET', undefined, old)).status, 401);
+  const fresh = (await login('member1@example.test')).body.session.accessToken;
+  assert.equal((await request('/member3/workout-sessions', 'GET', undefined, fresh)).status, 200);
+  users[0].role = 'admin';
+  const admin = (await login('member1@example.test')).body.session.accessToken;
+  assert.equal((await request('/member3/admin/access', 'GET', undefined, admin)).status, 200);
+  users[0].sessionVersion = 2;
+  assert.equal((await request('/member3/admin/access', 'GET', undefined, admin)).status, 401);
+});
+
 test('legacy uppercase SLIIT accounts remain reachable after real Mongoose query casting', async t => {
   const { login, users } = await harness(t);
   users[0].email = 'IT12345678@my.sliit.lk';

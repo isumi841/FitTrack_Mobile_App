@@ -10,6 +10,7 @@ import { AUTH_COLORS } from '@/components/member1/auth-theme';
 import { type SocialProvider } from '@/components/member1/SocialAuthButton';
 import { login } from '@/features/member1/auth/auth-api';
 import { saveAuthSession } from '@/features/member1/auth/session';
+import { authDestination } from '@/features/member1/auth/destination';
 import { useSocialLogin } from '@/features/member1/auth/social-login';
 import { AUTH_VALIDATION_MESSAGES, getPasswordByteLength, isValidEmail } from '@/features/member1/utils/validation';
 
@@ -64,7 +65,7 @@ export default function LoginScreen() {
       await saveAuthSession(result);
       if (controller.signal.aborted || requestRef.current !== controller) return;
       setPassword('');
-      router.replace(result.user.role === 'admin' ? '/admin' : '/member1_onboarding_personalization/personalized-plan');
+      router.replace(authDestination(result));
     } catch (error) {
       if (!controller.signal.aborted && requestRef.current === controller) {
         setMessage(error instanceof Error ? error.message : 'Unable to log in. Please try again.');
@@ -89,7 +90,7 @@ export default function LoginScreen() {
       if (focusVersion.current !== version) return;
       if (result.status === 'success') {
         setPassword('');
-        router.replace(result.user.role === 'admin' ? '/admin' : '/member1_onboarding_personalization/personalized-plan');
+        router.replace(authDestination(result));
       } else setMessage(result.message);
     } catch (error) {
       if (focusVersion.current === version) {
@@ -165,7 +166,8 @@ export default function LoginScreen() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={() => setMessage('Password recovery is coming soon.')}
+          disabled={isSubmitting || isSocialSubmitting}
+          onPress={() => router.push({ pathname: '/member1_onboarding_personalization/forgot-password', params: { email } })}
           style={styles.textButton}>
           <Text style={styles.link}>Forgot Password?</Text>
         </Pressable>

@@ -69,6 +69,7 @@ export interface AuthSession {
 
 export interface SessionSuccessResponse extends UserSuccessResponse {
   session: AuthSession;
+  firstLogin?: boolean;
 }
 
 export type SignupSuccessResponse = EmailSuccessResponse | SessionSuccessResponse;
@@ -138,7 +139,7 @@ export function readSessionSuccess(value: unknown, expectedEmail?: string): Sess
       typeof value.session.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.session.expiresAt))) {
     throw new AuthApiError(RESPONSE_MESSAGE, 'INVALID_RESPONSE');
   }
-  return { ...result, session: { accessToken: value.session.accessToken, expiresAt: value.session.expiresAt } };
+  return { ...result, firstLogin: value.firstLogin === true, session: { accessToken: value.session.accessToken, expiresAt: value.session.expiresAt } };
 }
 
 async function post<T>(
@@ -224,6 +225,14 @@ export function resendOtp(payload: { email: string }, options?: AuthRequestOptio
 
 export function login(payload: LoginRequest, options?: AuthRequestOptions): Promise<SessionSuccessResponse> {
   return post('/api/auth/login', payload, (value) => readSessionSuccess(value, payload.email), options);
+}
+
+export function requestPasswordReset(payload: { email: string }, options?: AuthRequestOptions): Promise<EmailSuccessResponse> {
+  return post('/api/auth/forgot-password', payload, value => readEmailSuccess(value, payload.email), options);
+}
+
+export function resetPassword(payload: { email: string; otp: string; newPassword: string }, options?: AuthRequestOptions): Promise<EmailSuccessResponse> {
+  return post('/api/auth/reset-password', payload, value => readEmailSuccess(value, payload.email), options);
 }
 
 export function adminLogin(payload: LoginRequest, options?: AuthRequestOptions): Promise<SessionSuccessResponse> {

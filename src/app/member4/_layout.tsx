@@ -12,7 +12,7 @@ export default function Member4Layout() {
   if (!ready) return null;
   if (!session) return <Redirect href="/member1_onboarding_personalization/login" />;
   if (session.user.role === 'admin') return <Redirect href="/admin" />;
-  return <Member4Alerts><Member4ProfileProvider key={session.user.id}><Member4ActivityProvider>
+  return <Member4Alerts><Member4ActivityProvider>
     <View style={{ flex: 1, backgroundColor: '#0e1317' }}><Stack screenOptions={{ headerShown: false }} /><AppBottomNav onBeforeNavigate={pause} /></View>
-  </Member4ActivityProvider></Member4ProfileProvider></Member4Alerts>;
+  </Member4ActivityProvider></Member4Alerts>;
 }

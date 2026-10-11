@@ -12,6 +12,34 @@ const email = 'IT12345678@my.sliit.lk';
 const password = 'FitTrack@123';
 const signupBody = { email, password, confirmPassword: password };
 
+test('only the first successful login after signup receives the welcome plan', async t => {
+  const f = await harness(t);
+  await f.post('signup', signupBody);
+  assert.equal((await f.post('verify-email', { email, otp: f.emails[0].otp })).status, 201);
+  assert.equal(f.state.users[0].welcomePending, true);
+  assert.equal((await f.post('login', { email, password: 'WrongPassword!' })).status, 401);
+  assert.equal(f.state.users[0].welcomePending, true);
+  const first = await f.post('login', { email, password });
+  assert.equal(first.status, 200);
+  assert.equal(first.body.firstLogin, true);
+  assert.equal(f.state.users[0].welcomePending, false);
+  const returning = await f.post('login', { email, password });
+  assert.equal(returning.status, 200);
+  assert.equal(returning.body.firstLogin, false);
+});
+
+test('existing accounts and concurrent logins do not repeat signup welcome', async t => {
+  const f = await harness(t);
+  f.state.users.push({ _id: 'existing', email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 4), isEmailVerified: true, authProvider: 'local' });
+  const returning = await f.post('login', { email, password });
+  assert.equal(returning.status, 200);
+  assert.equal(returning.body.firstLogin, false);
+  f.state.users[0].welcomePending = true;
+  const simultaneous = await Promise.all([f.post('login', { email, password }), f.post('login', { email, password })]);
+  assert.ok(simultaneous.every(result => result.status === 200));
+  assert.equal(simultaneous.filter(result => result.body.firstLogin).length, 1);
+});
+
 function deferred() {
   let resolve;
   const promise = new Promise((done) => { resolve = done; });
@@ -418,4 +446,84 @@ test('JSON parsing and CORS produce safe API errors', async (t) => {
   assert.equal(invalid.status, 400);
   const allowed = await fetch(`${f.url}/api/health`, { headers: { Origin: 'http://localhost:8081' } });
   assert.equal(allowed.headers.get('access-control-allow-origin'), 'http://localhost:8081');
+});
+
+
+test('password recovery updates the password once and revokes older sessions', async t => {
+  const f = await harness(t);
+  f.state.users.push({ _id: 'existing', email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 4), isEmailVerified: true, authProvider: 'local' });
+  const old = await f.post('login', { email, password });
+  const requested = await f.post('forgot-password', { email });
+  assert.equal(requested.status, 200);
+  assert.equal(f.emails[0].purpose, 'password-reset');
+  assert.ok(!JSON.stringify(requested.body).includes(f.emails[0].otp));
+  assert.notEqual(f.state.resets[0].otpHash, f.emails[0].otp);
+  assert.equal((await f.post('forgot-password', { email })).status, 429);
+  const body = { email, otp: f.emails[0].otp, newPassword: 'NewPassword@123' };
+  assert.equal((await f.post('reset-password', { ...body, newPassword: 'weak' })).status, 400);
+  assert.equal((await f.post('reset-password', body)).status, 200);
+  assert.equal((await f.post('reset-password', body)).status, 410);
+  assert.equal((await f.post('login', { email, password })).status, 401);
+  const fresh = await f.post('login', { email, password: body.newPassword });
+  assert.equal(fresh.status, 200);
+  for (const [token, status] of [[old.body.session.accessToken, 401], [fresh.body.session.accessToken, 200]]) {
+    const me = await fetch(f.url + '/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+    assert.equal(me.status, status);
+  }
+});
+
+test('password recovery enforces attempts, expiry, resends and safe delivery failure', async t => {
+  const f = await harness(t);
+  f.state.users.push({ _id: 'existing', email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 4), isEmailVerified: true, authProvider: 'local' });
+  await f.post('forgot-password', { email });
+  const firstOtp = f.emails[0].otp;
+  const body = { email, otp: '0000', newPassword: 'NewPassword@123' };
+  for (let i = 0; i < 5; i++) assert.equal((await f.post('reset-password', body)).status, 400);
+  assert.equal((await f.post('reset-password', { ...body, otp: firstOtp })).status, 429);
+  f.timestamp += 60001;
+  f.mailFailure = true;
+  const failed = await f.post('forgot-password', { email });
+  assert.equal(failed.status, 502);
+  assert.ok(!JSON.stringify(failed.body).includes('private'));
+  assert.equal(f.state.resets[0].attempts, 5);
+  f.mailFailure = false;
+  assert.equal((await f.post('forgot-password', { email })).status, 200);
+  assert.equal(f.state.resets[0].attempts, 0);
+  f.timestamp += 15 * 60000;
+  assert.equal((await f.post('reset-password', { ...body, otp: f.emails[1].otp })).status, 410);
+});
+
+test('password recovery preserves account privacy and prevents concurrent reuse', async t => {
+  const f = await harness(t);
+  const absent = await f.post('forgot-password', { email });
+  assert.equal(absent.status, 200);
+  assert.equal(f.emails.length, 0);
+  f.state.users.push({ _id: 'existing', email: email.toLowerCase(), isEmailVerified: true, authProvider: 'google' });
+  assert.deepEqual((await f.post('forgot-password', { email })).body, absent.body);
+  assert.equal(f.emails.length, 0);
+  f.state.users[0].authProvider = 'local';
+  f.state.users[0].passwordHash = await bcrypt.hash(password, 4);
+  await f.post('forgot-password', { email });
+  const body = { email, otp: f.emails[0].otp, newPassword: 'NewPassword@123' };
+  const results = await Promise.all([f.post('reset-password', body), f.post('reset-password', body)]);
+  assert.equal(results.filter(result => result.status === 200).length, 1);
+  assert.equal(f.state.users[0].sessionVersion, 1);
+});
+
+test('a failed password update rolls back reset consumption and remains retryable', async t => {
+  const f = await harness(t);
+  f.state.users.push({ _id: 'existing', email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 4), isEmailVerified: true, authProvider: 'local' });
+  f.mailFailure = true;
+  assert.equal((await f.post('forgot-password', { email })).status, 502);
+  assert.equal(f.state.resets.length, 0);
+  f.mailFailure = false;
+  await f.post('forgot-password', { email });
+  const update = f.User.updateOne;
+  f.User.updateOne = async () => { throw new Error('Database write failed'); };
+  const body = { email, otp: f.emails[0].otp, newPassword: 'NewPassword@123' };
+  assert.equal((await f.post('reset-password', body)).status, 500);
+  assert.equal(f.state.resets.length, 1);
+  assert.ok(await bcrypt.compare(password, f.state.users[0].passwordHash));
+  f.User.updateOne = update;
+  assert.equal((await f.post('reset-password', body)).status, 200);
 });

@@ -13,7 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export type SocialProvider = 'Google' | 'Apple' | 'Facebook';
 export type SocialLoginResult =
-  | { status: 'success'; provider: SocialProvider; message: string; user: AuthUser }
+  | { status: 'success'; provider: SocialProvider; message: string; user: AuthUser; firstLogin?: boolean }
   | { status: 'cancelled' | 'unavailable' | 'error'; provider: SocialProvider; message: string };
 
 const discovery = { authorizationEndpoint: `${API_BASE_URL}/api/auth/social/authorize` };
@@ -74,7 +74,7 @@ export function useSocialLogin() {
         });
       }
       if (shouldSaveSession && 'session' in result) await saveAuthSession(result);
-      return { status: 'success', provider, message: result.message, user: result.user };
+      return { status: 'success', provider, message: result.message, user: result.user, firstLogin: 'firstLogin' in result && result.firstLogin === true };
     } catch (error) {
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ERR_REQUEST_CANCELED') {
         return { status: 'cancelled', provider, message: `${provider} sign-in was cancelled.` };

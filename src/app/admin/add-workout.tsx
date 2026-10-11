@@ -1,5 +1,8 @@
 // Adapted from admin_workout_management 8cebec0. Shared layout and authenticated API.
-import { ADMIN_WORKOUT_API as API_URL, adminWorkoutRequest } from "@/features/exercises/admin-workout-api";
+import {
+  ADMIN_WORKOUT_API as API_URL,
+  adminWorkoutRequest,
+} from "@/features/exercises/admin-workout-api";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -20,8 +23,6 @@ import {
 } from "@/components/admin/workout-form-ui";
 import { ADMIN_COLORS } from "@/constants/admin-theme";
 
-
-
 const CATEGORY_OPTIONS = [
   "Full Body",
   "Strength",
@@ -31,19 +32,9 @@ const CATEGORY_OPTIONS = [
   "Core",
 ];
 
-const DIFFICULTY_OPTIONS = [
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-];
+const DIFFICULTY_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 
-const DURATION_OPTIONS = [
-  "5",
-  "15",
-  "30",
-  "45",
-  "Other",
-];
+const DURATION_OPTIONS = ["5", "15", "30", "45", "Other"];
 
 const EQUIPMENT_OPTIONS = [
   "No equipment",
@@ -136,7 +127,8 @@ export default function AddWorkoutScreen() {
     if (
       !finalDuration ||
       !Number.isSafeInteger(Number(finalDuration)) ||
-      Number(finalDuration) <= 0 || Number(finalDuration) > 1440
+      Number(finalDuration) <= 0 ||
+      Number(finalDuration) > 1440
     ) {
       showFormError("Please enter a valid duration in minutes.");
       return;
@@ -267,9 +259,7 @@ export default function AddWorkoutScreen() {
               },
             ]}
           >
-            <Text style={[styles.backText, { color: colors.text }]}>
-              ←
-            </Text>
+            <Text style={[styles.backText, { color: colors.text }]}>←</Text>
           </Pressable>
 
           <View style={styles.headerText}>
@@ -278,7 +268,7 @@ export default function AddWorkoutScreen() {
             </Text>
 
             <Text style={[styles.subtitle, { color: colors.muted }]}>
-              Create a new workout for FitFlow users.
+              Create a new workout for FitTrack users.
             </Text>
           </View>
         </View>
@@ -542,9 +532,7 @@ function FormInput({
 }) {
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: colors.text }]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
 
       <TextInput
         accessibilityLabel={label}
@@ -595,12 +583,10 @@ function DropdownField({
 
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: colors.text }]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
 
       <Pressable
-            accessibilityRole="button"
+        accessibilityRole="button"
         onPress={() => setOpen((current) => !current)}
         style={[
           styles.dropdownButton,
@@ -641,7 +627,7 @@ function DropdownField({
 
             return (
               <Pressable
-            accessibilityRole="button"
+                accessibilityRole="button"
                 key={option}
                 onPress={() => {
                   onSelect(option);

@@ -365,9 +365,17 @@ async function deleteGoal(
       });
 
     if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found.',
+      const exists = await Goal.findById(id).lean();
+      if (exists && String(exists.userId) !== String(req.user.id)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Goal not found.',
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'Goal deleted successfully.',
+        data: { id },
       });
     }
 

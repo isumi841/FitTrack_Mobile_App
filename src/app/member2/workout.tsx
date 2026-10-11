@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Text, View } from "react-native";
-import { router } from "expo-router";
-import { useDiscoveryTheme as useTheme, WorkoutFonts, WorkoutFontWeights } from "@/features/discovery/theme";
+import { useCallback, useState } from "react";
+import { Image, Pressable, View } from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import { useDiscoveryTheme as useTheme } from "@/features/discovery/theme";
+import { NavigationIcon } from '@/components/navigation/navigation-icon';
 import {
   categoryDetails,
   durations,
@@ -20,10 +21,19 @@ import {
 import { useWorkouts } from '@/features/discovery/use-workouts';
 import { WorkoutLoadState } from '@/features/discovery/workout-load-state';
 import { useAuth } from '@/features/member1/auth/provider';
+import { useMember4Profile } from '@/features/member4/context/Member4ProfileContext';
 
 export default function WorkoutScreen() {
   const { session } = useAuth();
+  const { profile, refreshProfile } = useMember4Profile();
   const theme = useTheme();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshProfile();
+    }, [refreshProfile])
+  );
+
   const [query, setQuery] = useState("");
   const [duration, setDuration] = useState("15");
   const resource = useWorkouts(query, { duration });
@@ -49,7 +59,7 @@ export default function WorkoutScreen() {
           },
         ]}
       >
-        <View style={{ flex: 1, gap: 1 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 1, marginRight: 12 }}>
           <WorkoutText
             muted
             weight="medium"
@@ -57,36 +67,41 @@ export default function WorkoutScreen() {
           >
             Welcome to FitTrack
           </WorkoutText>
-          <WorkoutText weight="bold" style={{ fontSize: 15, lineHeight: 19 }}>
-            Let’s move
+          <WorkoutText weight="bold" numberOfLines={1} ellipsizeMode="tail" style={{ fontSize: 15, lineHeight: 19 }}>
+            {profile?.fullName || session?.user.email || 'Welcome'}
           </WorkoutText>
         </View>
-        <View
-          accessibilityLabel="FitTrack"
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 12,
-            borderWidth: 1,
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open profile"
+          onPress={() => router.navigate('/member4/profile')}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            borderRadius: 22,
+            borderWidth: 1.5,
             borderColor: theme.workoutAccent,
             alignItems: "center",
             justifyContent: "center",
-          }}
+            overflow: "hidden",
+            backgroundColor: theme.workoutCard,
+            opacity: pressed ? 0.7 : 1,
+          })}
         >
-          <Text
-            style={{
-              color: theme.workoutAccent,
-              fontFamily: WorkoutFonts.semibold,
-              fontWeight: WorkoutFontWeights.semibold,
-              fontSize: 9,
-            }}
-          >
-            F
-          </Text>
-        </View>
+          {profile?.avatarUrl ? (
+            <Image
+              source={{ uri: profile.avatarUrl }}
+              style={{ width: "100%", height: "100%", borderRadius: 22 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <NavigationIcon name="profile" color={theme.workoutAccent} size={22} />
+          )}
+        </Pressable>
       </View>
       <WorkoutSearch value={query} onChange={setQuery} onFilter={openFilters} />
-      {(!session || session.user.role === 'admin') && <WorkoutButton title={session ? 'Admin dashboard' : 'Log in / Sign up'} secondary onPress={() => router.push(session ? '/admin' : '/member1_onboarding_personalization/login')} />}
+      {session?.user.role === 'admin' && <WorkoutButton title="Admin dashboard" secondary onPress={() => router.push('/admin')} />}
 
       <View style={{ gap: 12 }}>
         <View style={workoutStyles.row}>

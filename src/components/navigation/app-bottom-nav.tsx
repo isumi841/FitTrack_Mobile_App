@@ -1,6 +1,6 @@
 import { router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -14,8 +14,10 @@ import { APP_NAV_ITEMS, getActiveNavigationId, type NavigationItem } from './nav
 import { NavigationIcon } from './navigation-icon';
 import { NAV_COLORS as C, NAV_SPRING, NAV_THEME as T } from './navigation-theme';
 import { QuickActionsSheet } from './quick-actions-sheet';
+import { useMember4Profile } from '@/features/member4/context/Member4ProfileContext';
 
 function NavItem({ item, active, onNavigate }: { item: NavigationItem; active: boolean; onNavigate: () => void }) {
+  const { profile } = useMember4Profile();
   const focus = useSharedValue(active ? 1 : 0);
   const press = useSharedValue(1);
   const reducedMotion = useReducedMotion();
@@ -43,7 +45,21 @@ function NavItem({ item, active, onNavigate }: { item: NavigationItem; active: b
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
     >
       <Animated.View style={iconStyle}>
-        <NavigationIcon name={item.icon} color={active ? C.accent : C.muted} />
+        {item.id === 'profile' && profile?.avatarUrl ? (
+          <Image
+            source={{ uri: profile.avatarUrl }}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              borderWidth: active ? 1.5 : 1,
+              borderColor: active ? C.accent : C.muted,
+            }}
+            resizeMode="cover"
+          />
+        ) : (
+          <NavigationIcon name={item.icon} color={active ? C.accent : C.muted} />
+        )}
       </Animated.View>
       <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.label, active && styles.activeLabel]}>
         {item.label}

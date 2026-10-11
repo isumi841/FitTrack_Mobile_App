@@ -203,7 +203,10 @@ const json = (method: string, data: unknown): RequestInit => ({ method, body: JS
 export const getGoals = () => request<ApiListResponse<ApiGoal>>('/goals');
 export const createGoal = (data: CreateGoalPayload) => request<ApiSingleResponse<ApiGoal>>('/goals', json('POST', data));
 export const updateGoal = (id: string, data: UpdateGoalPayload) => request<ApiSingleResponse<ApiGoal>>('/goals/' + encodeURIComponent(id), json('PATCH', data));
-export const deleteGoal = (id: string) => request('/goals/' + encodeURIComponent(id), { method: 'DELETE' });
+export async function deleteGoal(id: string) {
+  try { return await request('/goals/' + encodeURIComponent(id), { method: 'DELETE' }); }
+  catch (error) { if ((error as { status?: number }).status === 404) return { success: true, message: 'Goal already deleted.' }; throw error; }
+}
 export async function getProfile() {
   try { return await request<ApiSingleResponse<ApiUserProfile>>('/profile'); }
   catch (error) { if ((error as { status?: number }).status === 404) return null; throw error; }

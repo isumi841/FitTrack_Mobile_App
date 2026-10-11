@@ -29,7 +29,7 @@ function useWorkoutState() {
   const [recordsVersion, setRecordsVersion] = useState(0);
   const token = owner ? account?.session.accessToken ?? '' : '';
   const credential = useRef(token);
-  useEffect(() => { credential.current = token; }, [token]);
+  credential.current = token;
   const current = useRef<Session | null>(null);
   const server = useRef<Session | null>(null);
   const journal = useRef<Journal | null>(null);
@@ -182,9 +182,10 @@ function useWorkoutState() {
     return true;
   }, [flush, setSession]);
   const fetchNotices = useCallback(async () => {
-    if (!credential.current) return;
+    const authHeader = credential.current || token;
+    if (!authHeader) return;
     try {
-      const res = await api<{ notifications: Notice[]; unread: number }>('/notifications', credential.current);
+      const res = await api<{ notifications: Notice[]; unread: number }>('/notifications', authHeader);
       if (Array.isArray(res?.notifications)) {
         setPrefs(p => {
           const backendIds = new Set(res.notifications.map(n => n.id));
@@ -195,7 +196,7 @@ function useWorkoutState() {
     } catch {
       // Offline or network error - retain local notices
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     let live = true;

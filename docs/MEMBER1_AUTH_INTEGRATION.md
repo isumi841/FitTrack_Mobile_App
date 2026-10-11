@@ -1,8 +1,60 @@
 # Member 1 authentication integration
 
 Source: `member1_onboarding_personalization`, selectively updated through commit
-`0a73dde678459a79170f2a2e605fd2525d2bc976` (Implement Google sign-up authentication flow).
+`d42b9e883df2fb7f1cce01809159c69c85f1af1e` (user-management dialog sizing).
 Original integration baseline: `174873a171b142c75d8c3405abb7d8a66d589c7f`.
+
+## Latest incremental update
+
+The only change after `d53a434` was the Add/Edit User dialog sizing. Retained
+the existing 90% width and applied the upstream 400px maximum width. Preserved
+the scrollable form, height limit, shared mobile viewport, CRUD validation and
+logout-to-login fix. No duplicate screens, routes or backend changes were added.
+
+## October 10 update
+
+Compared changes since `0a73dde` against the existing integrated application.
+
+- Imported the redesigned welcome screen, required images, image-based goal cards,
+  extra fitness levels, and schedule picker. All use the existing theme and 430px
+  mobile viewport. Training days are saved with account-scoped onboarding
+  preferences instead of displaying the upstream fixed 32-day streak. They are
+  preferences only; this screen does not create reminders or notifications.
+- Expert/Elite preferences match the leader library's Advanced difficulty.
+- Pending signup now returns to verification, allowing resend instead of leaving
+  the user stuck on signup.
+- Added forgot/reset-password routes through a single shared form. Invalid codes
+  stay on the form; success returns to login. Email delivery uses existing SMTP
+  configuration. Four-digit reset codes expire after 15 minutes, allow five
+  attempts, and have a 60-second resend cooldown. Only hashes are stored in the
+  new `passwordresets` collection on the existing primary database connection.
+- Fixed the upstream reset handler's unconditional rejection of valid codes.
+  Email locks serialize requests, delivery failures restore prior challenges,
+  and a transaction consumes the code and updates the password together. Reset
+  increments the account session version to revoke older JWTs. Recovery supports
+  verified password accounts in `users`; social accounts use their provider.
+  Separate `admins` accounts retain the existing admin login/management flow.
+- Added admin profile, accessible from the dashboard avatar, using the real
+  signed-in account and working management/settings links. Reused the protected
+  admin layout and logout confirmation. Did not import duplicate navigation,
+  placeholder health/session figures, a nonfunctional edit-profile action, or
+  startup seeding/default admin credentials. Existing Users CRUD already covers
+  the branch's user-management functionality.
+- Preserved returning-user Home navigation, first-signup-only welcome, profile
+  link and email in Home, and the welcome screen's removed notification bell.
+  Kept the current workout, exercise, session and Member4 integrations intact.
+- Kept the shared theme-aware grid card rather than importing hard-coded dark
+  colors that break light mode. The unused `logo.png` asset was not copied.
+
+Validation: TypeScript, Expo lint, and all 133 backend regression tests passed.
+An isolated browser check at 430 x 932 also verified onboarding preference
+persistence, incorrect/correct reset codes, login with the changed password,
+first-signup welcome behavior, and admin profile navigation. Password recovery
+HTTP tests use injected database/email services, covering password validation,
+expiry, attempts, resend cooldown, SMTP rollback, concurrent reuse, old-password
+rejection and old-session revocation. No real users or database content were
+changed by the tests. Live SMTP delivery and Atlas transaction behavior still
+require the configured deployment.
 
 ## October 8 update
 

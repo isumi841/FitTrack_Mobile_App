@@ -65,19 +65,17 @@ async function uploadProfileAvatar(
         });
     }
 
-    const profile =
+    let profile =
       await UserProfile.findOne({
         userId: req.user.id,
       });
 
     if (!profile) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message:
-            'Please save your profile before uploading a photo.',
-        });
+      profile = await UserProfile.create({
+        userId: req.user.id,
+        fullName: 'FitTrack Member',
+        username: `user_${String(req.user.id).slice(-6)}`,
+      });
     }
 
     uploadedImage =

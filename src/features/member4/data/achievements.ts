@@ -1,7 +1,7 @@
 import type { AchievementItem } from '../components/AchievementBadge';
 import type { Session } from '@/features/workout/engine';
 import type { ApiGoal } from '../services/member4Service';
-import { longestStreak } from './session-activity';
+import { longestStreak, computeGoalProgress } from './session-activity';
 const DEFINITIONS: AchievementItem[] = [
   {
     id: 'first-workout',
@@ -165,7 +165,7 @@ export function getAchievements(sessions: readonly Session[], goals: readonly Ap
   const values: Record<string, [number, number]> = {
     'first-workout': [count, 1], 'seven-day-streak': [streak, 7], 'early-bird': [dates.filter(date => date.getHours() < 8).length, 5],
     'ten-workouts': [count, 10], 'calorie-crusher': [0, 3000], 'weekend-warrior': [weekends.size, 4],
-    'goal-getter': [goals.filter(goal => goal.current >= goal.target || goal.status === 'completed').length, 1],
+    'goal-getter': [goals.filter(goal => Math.max(goal.current ?? 0, computeGoalProgress(goal, sessions)) >= goal.target || goal.status === 'completed').length, 1],
     'momentum-builder': [bestWeek, 4], 'thirty-day-streak': [streak, 30], 'fifty-workouts': [count, 50],
     'marathon-mind': [Math.floor(sessions.reduce((sum, session) => sum + session.elapsedMs, 0) / 60000), 500],
   };

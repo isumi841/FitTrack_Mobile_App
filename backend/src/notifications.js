@@ -37,11 +37,21 @@ export const messages = {
     title: 'Welcome back',
     message: 'Good to see you again. Pick up where you left off and keep your training going.',
   }),
-  newWorkout: workout => ({
-    type: 'new_workout', dedupeKey: `workout:${workout._id}`, workoutId: String(workout._id),
-    title: 'New workout available',
-    message: `"${clip(workout.title, 80)}" (${clip(workout.category, 40)}, ${clip(workout.difficulty, 40)}, ${Number(workout.duration) || 0} min) was added to the workout library. Take a look and give it a try.`,
-  }),
+  newWorkout: (workout, firstName) => {
+    const wid = String(workout?._id ?? workout?.id ?? '');
+    const title = clip(workout?.title ?? workout?.name ?? 'New Workout', 80);
+    const category = clip(workout?.category ?? 'Fitness', 40);
+    const difficulty = clip(workout?.difficulty ?? workout?.level ?? 'All Levels', 40);
+    const duration = Number(workout?.duration ?? (workout?.durationSeconds ? Math.round(workout.durationSeconds / 60) : 0)) || 0;
+    const greeting = firstName ? `Hi ${clip(firstName, 40)}, a` : 'A';
+    return {
+      type: 'new_workout',
+      dedupeKey: `workout:${wid}`,
+      workoutId: wid,
+      title: 'New workout available',
+      message: `${greeting} new workout, "${title}" (${category}, ${difficulty}, ${duration} min), was just added to the library. Take a look and give it a try!`,
+    };
+  },
   newExercise: (exercise, workoutName, workoutId) => ({
     type: 'new_exercise', dedupeKey: `exercise:${exercise.id}`, workoutId: String(workoutId),
     title: 'New exercise added',
@@ -92,22 +102,46 @@ export function createNotificationService({ Notification, getUser, logger = cons
     await trim(userId);
   }
 
-  async function broadcast(notice) {
-    const User = getUser();
+  // `build(firstName)` returns the notice for one member, so every user gets their own message.
+  async function broadcast(build) {
+    const User = typeof getUser === 'function' ? getUser() : getUser;
+    if (!User) {
+      logger.warn?.('User model is unavailable for notification broadcast.');
+      return;
+    }
     const filter = { $or: [{ role: { $exists: false } }, { role: null }, { role: 'user' }] };
     let batch = [];
     const flush = async () => {
       if (!batch.length) return;
-      const documents = batch.map(_id => ({ ...notice, userId: _id }));
+      const documents = batch;
       batch = [];
       try { await Notification.insertMany(documents, { ordered: false }); }
       catch (error) { if (!duplicate(error)) throw error; }
     };
-    for await (const user of User.find(filter).select('_id').lean().cursor()) {
-      batch.push(user._id);
-      if (batch.length >= 500) await flush();
+    try {
+      const query = User.find(filter).select('_id displayName email').lean();
+      if (typeof query.cursor === 'function') {
+        for await (const user of query.cursor()) {
+          let name = String(user.displayName ?? '').trim();
+          if (name.includes('@')) name = name.split('@')[0];
+          const firstName = name.split(/\s+/)[0];
+          batch.push({ ...build(firstName), userId: user._id });
+          if (batch.length >= 500) await flush();
+        }
+      } else {
+        const users = await (typeof query.exec === 'function' ? query.exec() : query);
+        for (const user of (Array.isArray(users) ? users : [])) {
+          let name = String(user.displayName ?? '').trim();
+          if (name.includes('@')) name = name.split('@')[0];
+          const firstName = name.split(/\s+/)[0];
+          batch.push({ ...build(firstName), userId: user._id });
+          if (batch.length >= 500) await flush();
+        }
+      }
+      await flush();
+    } catch (error) {
+      logger.warn?.('Notification broadcast failed:', error);
     }
-    await flush();
   }
 
   return {
@@ -125,8 +159,8 @@ export function createNotificationService({ Notification, getUser, logger = cons
         return create(userId, messages.welcomeBack());
       }
     }),
-    workoutAdded: workout => safe(() => broadcast(messages.newWorkout(workout))),
-    exerciseAdded: ({ exercise, workoutName, workoutId }) => safe(() => broadcast(messages.newExercise(exercise, workoutName, workoutId))),
+    workoutAdded: workout => safe(() => broadcast(name => messages.newWorkout(workout, name))),
+    exerciseAdded: ({ exercise, workoutName, workoutId }) => safe(() => broadcast(() => messages.newExercise(exercise, workoutName, workoutId))),
     sessionFinished: (ownerId, session) => safe(async () => {
       const userId = userIdFromOwner(ownerId);
       if (userId) await create(userId, messages.sessionFinished(session));
@@ -169,8 +203,10 @@ export function notificationRoutes({ notifications, identity, RequestError }) {
   return routes;
 }
 
-// Registered by the database adapter once the shared mongoose instance exists.
 export function createNotifications(odm) {
   const Notification = createNotificationModel(odm);
-  return createNotificationService({ Notification, getUser: () => odm.models.User });
+  return createNotificationService({
+    Notification,
+    getUser: () => odm.models.User || odm.connection?.models?.User || (odm.model ? (() => { try { return odm.model('User'); } catch { return null; } })() : null),
+  });
 }

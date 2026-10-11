@@ -140,6 +140,51 @@ test('notification service creates welcome on signup and welcome_back on subsequ
   assert.equal(store[1].title, 'Welcome back');
 });
 
+test('notification service broadcasts personalized workout notifications to all member accounts', async () => {
+  const store = [];
+  const fakeModel = {
+    async insertMany(docs) {
+      store.push(...docs);
+      return docs;
+    },
+  };
+  const members = [
+    { _id: new mongoose.Types.ObjectId(), displayName: 'Alice Walker', role: 'user' },
+    { _id: new mongoose.Types.ObjectId(), displayName: 'Bob@example.com', role: 'user' },
+    { _id: new mongoose.Types.ObjectId(), displayName: null, role: 'user' },
+  ];
+  const service = createNotificationService({
+    Notification: fakeModel,
+    getUser: () => ({
+      find: () => ({
+        select: () => ({
+          lean: () => ({
+            cursor: async function* () {
+              for (const m of members) yield m;
+            },
+          }),
+        }),
+      }),
+    }),
+    logger: { warn: () => {} },
+  });
+
+  await service.workoutAdded({
+    _id: '507f1f77bcf86cd799439011',
+    title: 'Morning Yoga',
+    category: 'Mobility',
+    difficulty: 'Beginner',
+    duration: 15,
+  });
+
+  assert.equal(store.length, 3);
+  assert.equal(store[0].type, 'new_workout');
+  assert.equal(store[0].workoutId, '507f1f77bcf86cd799439011');
+  assert.ok(store[0].message.includes('Hi Alice'));
+  assert.ok(store[1].message.includes('Hi Bob'));
+  assert.ok(store[2].message.startsWith('A new workout'));
+});
+
 test('notifications HTTP routes enforce auth and support list, mark read, and delete', async t => {
   const userId = '507f1f77bcf86cd799439099';
   const notices = [

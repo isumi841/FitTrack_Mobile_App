@@ -43,6 +43,7 @@ function createEmailService(config, { transporter } = {}) {
   async function sendVerificationEmail({
     email,
     otp,
+    purpose,
     expiresInMinutes = config.otpExpiryMinutes,
   }) {
     if (!isValidEmail(email) || typeof otp !== 'string' || otp.length !== 4 ||
@@ -61,9 +62,9 @@ function createEmailService(config, { transporter } = {}) {
       const result = await mailer.sendMail({
         from: config.email.from,
         to: recipientEmail,
-        subject: 'FitTrack Email Verification',
+        subject: purpose === 'password-reset' ? 'FitTrack Password Reset' : 'FitTrack Email Verification',
         text: [
-          'Welcome to FitTrack.',
+          purpose === 'password-reset' ? 'Reset your FitTrack password.' : 'Welcome to FitTrack.',
           '',
           'Your verification code is:',
           '',
@@ -74,7 +75,7 @@ function createEmailService(config, { transporter } = {}) {
           'If you did not request this code, you can ignore this email.',
         ].join('\n'),
         html: `<div style="font-family:Arial,sans-serif;color:#111312;max-width:480px">` +
-          `<h2>Welcome to FitTrack.</h2><p>Your verification code is:</p>` +
+          `<h2>${purpose === 'password-reset' ? 'Reset your FitTrack password.' : 'Welcome to FitTrack.'}</h2><p>Your verification code is:</p>` +
           `<p style="font-size:30px;font-weight:700;letter-spacing:6px">${otp}</p>` +
           `<p>This code expires in ${expiresInMinutes} minutes.</p>` +
           `<p>If you did not request this code, you can ignore this email.</p></div>`,

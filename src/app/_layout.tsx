@@ -10,6 +10,7 @@ import { DiscoveryProvider } from '@/features/discovery/store';
 import { AdminProvider } from '@/features/exercises/admin-store';
 import { AuthProvider, useAuth } from '@/features/member1/auth/provider';
 import { ThemeProvider as OnboardingThemeProvider } from '@/features/member1/theme';
+import { Member4ProfileProvider } from '@/features/member4/context/Member4ProfileContext';
 import type { ReactNode } from 'react';
 import { MobileViewport } from '@/components/layout/mobile-viewport';
 const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, primary: C.accent, background: C.bg, card: C.surface, text: C.text, border: C.border, notification: C.accent } };
@@ -22,5 +23,5 @@ function AccountProviders({ children }: { children: ReactNode }) {
   const { session, ready } = useAuth();
   if (!ready) return null;
   const account = session ? `${session.user.role ?? 'user'}:${session.user.id}` : 'signed-out';
-  return <WorkoutProvider key={account}><DiscoveryProvider><AdminProvider>{children}</AdminProvider></DiscoveryProvider></WorkoutProvider>;
+  return <WorkoutProvider key={account}><DiscoveryProvider><AdminProvider><Member4ProfileProvider key={account}>{children}</Member4ProfileProvider></AdminProvider></DiscoveryProvider></WorkoutProvider>;
 }

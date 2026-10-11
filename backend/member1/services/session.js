@@ -16,7 +16,7 @@ function createSessionService(config, { now = () => new Date() } = {}) {
     const issuedAt = Math.floor(new Date(now()).getTime() / 1000);
     const expiresAt = issuedAt + lifetimeSeconds;
     const role = user.role || 'user';
-    const accessToken = await new SignJWT({ provider: user.authProvider || 'local', role })
+    const accessToken = await new SignJWT({ provider: user.authProvider || 'local', role, sessionVersion: user.sessionVersion || 0 })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
       .setIssuer(ISSUER).setAudience(AUDIENCE).setSubject(String(user._id))
       .setJti(randomUUID()).setIssuedAt(issuedAt).setExpirationTime(expiresAt).sign(key);

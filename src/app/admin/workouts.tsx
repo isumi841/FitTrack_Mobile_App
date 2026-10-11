@@ -1,5 +1,8 @@
 // Adapted from admin_workout_management 8cebec0. Shared layout and authenticated API.
-import { ADMIN_WORKOUT_API as API_URL, adminWorkoutRequest } from "@/features/exercises/admin-workout-api";
+import {
+  ADMIN_WORKOUT_API as API_URL,
+  adminWorkoutRequest,
+} from "@/features/exercises/admin-workout-api";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -26,7 +29,6 @@ type Workout = {
   lowImpact?: boolean;
   active?: boolean;
 };
-
 
 const ADMIN_API_URL = `${API_URL}/admin/all`;
 
@@ -89,13 +91,23 @@ export default function AdminWorkoutsScreen() {
       setWorkouts(result.data);
       setError("");
     } catch (error) {
-      if (generation === loadGeneration.current) setError(error instanceof Error ? error.message : "Unable to load workouts.");
+      if (generation === loadGeneration.current)
+        setError(
+          error instanceof Error ? error.message : "Unable to load workouts.",
+        );
     } finally {
       if (generation === loadGeneration.current) setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { void loadWorkouts(); return () => { loadGeneration.current++; }; }, [loadWorkouts]));
+  useFocusEffect(
+    useCallback(() => {
+      void loadWorkouts();
+      return () => {
+        loadGeneration.current++;
+      };
+    }, [loadWorkouts]),
+  );
 
   /* =========================
      FILTER + SEARCH
@@ -148,9 +160,7 @@ export default function AdminWorkoutsScreen() {
         throw new Error(result.message || "Unable to delete workout");
       }
 
-      setWorkouts((current) =>
-        current.filter((workout) => workout._id !== id),
-      );
+      setWorkouts((current) => current.filter((workout) => workout._id !== id));
 
       await loadWorkouts();
       setDeleteModal("success");
@@ -159,7 +169,9 @@ export default function AdminWorkoutsScreen() {
       setDeleteModal(null);
       setSelectedWorkout(null);
 
-      setError(error instanceof Error ? error.message : "Unable to delete workout.");
+      setError(
+        error instanceof Error ? error.message : "Unable to delete workout.",
+      );
     } finally {
       setDeletingId(null);
     }
@@ -200,7 +212,7 @@ export default function AdminWorkoutsScreen() {
             </Text>
 
             <Text style={[styles.subtitle, { color: colors.muted }]}>
-              Add, edit and manage FitFlow workouts.
+              Add, edit and manage FitTrack workouts.
             </Text>
           </View>
 
@@ -212,18 +224,33 @@ export default function AdminWorkoutsScreen() {
                 backgroundColor: colors.accent,
               },
             ]}
-            onPress={() =>
-              router.push("/admin/add-workout")
-            }
+            onPress={() => router.push("/admin/add-workout")}
           >
-            <Text style={styles.addButtonText}>
-              + Add Workout
-            </Text>
+            <Text style={styles.addButtonText}>+ Add Workout</Text>
           </Pressable>
         </View>
 
-        <Pressable accessibilityRole="button" accessibilityLabel="Refresh workouts" disabled={loading} onPress={() => { void loadWorkouts(); }} style={{ alignSelf: 'flex-end', padding: 12 }}><Text style={{ color: colors.accent }}>{loading ? 'Refreshing...' : 'Refresh workouts'}</Text></Pressable>
-        {!!error && <Text accessibilityRole="alert" style={{ color: '#ef7373', paddingVertical: 12 }}>{error}</Text>}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Refresh workouts"
+          disabled={loading}
+          onPress={() => {
+            void loadWorkouts();
+          }}
+          style={{ alignSelf: "flex-end", padding: 12 }}
+        >
+          <Text style={{ color: colors.accent }}>
+            {loading ? "Refreshing..." : "Refresh workouts"}
+          </Text>
+        </Pressable>
+        {!!error && (
+          <Text
+            accessibilityRole="alert"
+            style={{ color: "#ef7373", paddingVertical: 12 }}
+          >
+            {error}
+          </Text>
+        )}
         {/* =========================
             SEARCH
         ========================= */}
@@ -285,10 +312,7 @@ export default function AdminWorkoutsScreen() {
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator
-              size="large"
-              color={colors.accent}
-            />
+            <ActivityIndicator size="large" color={colors.accent} />
 
             <Text
               style={[
@@ -374,9 +398,7 @@ export default function AdminWorkoutsScreen() {
                         style={[
                           styles.statusText,
                           {
-                            color: isActive
-                              ? colors.accent
-                              : colors.muted,
+                            color: isActive ? colors.accent : colors.muted,
                           },
                         ]}
                       >
@@ -391,7 +413,7 @@ export default function AdminWorkoutsScreen() {
 
                   <View style={styles.actions}>
                     <Pressable
-            accessibilityRole="button"
+                      accessibilityRole="button"
                       style={[
                         styles.editButton,
                         {
@@ -421,7 +443,7 @@ export default function AdminWorkoutsScreen() {
                     </Pressable>
 
                     <Pressable
-            accessibilityRole="button"
+                      accessibilityRole="button"
                       disabled={deletingId === workout._id}
                       style={[
                         styles.deleteButton,
@@ -433,9 +455,7 @@ export default function AdminWorkoutsScreen() {
                       onPress={() => confirmDelete(workout)}
                     >
                       <Text style={styles.deleteText}>
-                        {deletingId === workout._id
-                          ? "Deleting..."
-                          : "Delete"}
+                        {deletingId === workout._id ? "Deleting..." : "Delete"}
                       </Text>
                     </Pressable>
                   </View>
@@ -515,7 +535,7 @@ function FilterTab({
 }) {
   return (
     <Pressable
-            accessibilityRole="button"
+      accessibilityRole="button"
       onPress={onPress}
       style={[
         styles.tab,

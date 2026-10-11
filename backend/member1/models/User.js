@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required() { return this.authProvider === 'local'; }, select: false },
   isEmailVerified: { type: Boolean, required: true, default: false },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  // Only newly verified local registrations opt in; existing accounts go to Home.
+  sessionVersion: { type: Number, default: 0, min: 0 },
+  welcomePending: { type: Boolean, default: false },
   createdAt: { type: Date, required: true, default: Date.now, immutable: true },
 }, {
   toJSON: {

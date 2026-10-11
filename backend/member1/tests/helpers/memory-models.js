@@ -1,7 +1,7 @@
 // Database doubles for HTTP route tests. Atlas transactions and indexes still
 // need an integration check against a configured MongoDB Atlas cluster.
 function createMemoryModels() {
-  const state = { users: [], pending: [], locks: [], failUserCreate: false };
+  const state = { users: [], pending: [], resets: [], locks: [], failUserCreate: false };
   let nextId = 1;
   let transactionQueue = Promise.resolve();
   const copy = (value) => value === undefined ? undefined : structuredClone(value);
@@ -48,6 +48,12 @@ function createMemoryModels() {
   }
 
   const User = {
+    async updateOne(filter, update) {
+      const user = state.users.find(record => matches(record, filter));
+      if (!user) return { modifiedCount: 0 };
+      applyUpdate(user, update);
+      return { modifiedCount: 1 };
+    },
     exists: (filter) => query(() => state.users.some((user) => matches(user, filter))),
     findOne: (filter) => query(() => copy(state.users.find((user) => matches(user, filter)) || null)),
     async create(values) {
@@ -88,6 +94,34 @@ function createMemoryModels() {
       return { deletedCount: 1 };
     },
   };
+  const PasswordReset = {
+    findOne: (filter) => query(() => copy(state.resets.find((pending) => matches(pending, filter)) || null)),
+    findOneAndUpdate: (filter, update, options) => query(() => {
+      const pending = state.resets.find((record) => matches(record, filter));
+      if (!pending) return null;
+      const previous = copy(pending);
+      applyUpdate(pending, update);
+      return options?.returnDocument === 'after' || options?.new ? copy(pending) : previous;
+    }),
+    async create(value) {
+      if (state.resets.some((pending) => pending.email === value.email)) throw uniqueError();
+      const pending = { ...copy(value), _id: String(nextId++), createdAt: new Date() };
+      state.resets.push(pending);
+      return copy(pending);
+    },
+    async updateOne(filter, update) {
+      const pending = state.resets.find((record) => matches(record, filter));
+      if (!pending) return { modifiedCount: 0 };
+      applyUpdate(pending, update);
+      return { modifiedCount: 1 };
+    },
+    async deleteOne(filter) {
+      const index = state.resets.findIndex((record) => matches(record, filter));
+      if (index === -1) return { deletedCount: 0 };
+      state.resets.splice(index, 1);
+      return { deletedCount: 1 };
+    },
+  };
 
   const AuthEmailLock = {
     findOneAndUpdate: (filter, update, options) => query(() => {
@@ -118,12 +152,13 @@ function createMemoryModels() {
         let release;
         transactionQueue = new Promise((resolve) => { release = resolve; });
         await previous;
-        const snapshot = { users: copy(state.users), pending: copy(state.pending) };
+        const snapshot = { users: copy(state.users), pending: copy(state.pending), resets: copy(state.resets) };
         try {
           return await work();
         } catch (error) {
           state.users = snapshot.users;
           state.pending = snapshot.pending;
+          state.resets = snapshot.resets;
           throw error;
         } finally {
           release();
@@ -134,7 +169,7 @@ function createMemoryModels() {
   }
 
   const Admin = { findOne: () => query(() => null) };
-  return { User, Admin, EmailVerification, AuthEmailLock, state, startSession };
+  return { User, Admin, PasswordReset, EmailVerification, AuthEmailLock, state, startSession };
 }
 
 module.exports = { createMemoryModels };

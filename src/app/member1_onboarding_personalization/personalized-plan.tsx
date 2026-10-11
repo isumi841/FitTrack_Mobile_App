@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { getOnboardingData, type OnboardingData } from '@/features/member1/utils/onboarding-store';
@@ -6,16 +6,28 @@ import { useWorkouts } from '@/features/discovery/use-workouts';
 import { Button, Card, Page, Badge, s } from '@/features/workout/ui';
 import { useAuth } from '@/features/member1/auth/provider';
 import { PlanImages } from '@/features/member1/plan-images';
+import { canShowWelcomePlan, finishWelcomePlan } from '@/features/member1/auth/session';
 
 export default function PersonalizedPlan() {
+  const { session } = useAuth();
+  const [welcomeAllowed] = useState(canShowWelcomePlan);
+  useEffect(() => { if (welcomeAllowed) finishWelcomePlan(); }, [welcomeAllowed]);
+  if (!session) return <Redirect href="/member1_onboarding_personalization/login" />;
+  if (session.user.role === 'admin') return <Redirect href="/admin" />;
+  if (!welcomeAllowed) return <Redirect href="/member2/workout" />;
+  return <WelcomePlan />;
+}
+
+function WelcomePlan() {
   const { session } = useAuth();
   const [preferences, setPreferences] = useState<OnboardingData | null>(null);
   const { items, loading, error, retry } = useWorkouts();
   useEffect(() => { void getOnboardingData().then(setPreferences); }, []);
-  const matches = items.filter(workout => (!preferences?.fitnessLevel || workout.difficulty.toLowerCase() === preferences.fitnessLevel.toLowerCase()) &&
+  const matchingLevel = ['expert', 'elite'].includes(preferences?.fitnessLevel ?? '') ? 'advanced' : preferences?.fitnessLevel;
+  const matches = items.filter(workout => (!preferences?.fitnessLevel || workout.difficulty.toLowerCase() === matchingLevel?.toLowerCase()) &&
     (!preferences?.availableTime || workout.duration <= Number(preferences.availableTime)));
   const recommendations = matches.length ? matches.slice(0, 3) : items.slice(0, 3);
-  return <Page title="Your workout plan" showSessionFeedback={false} onBack={() => router.replace('/member2/workout')}>
+  return <Page title="Your workout plan" showNotifications={false} showSessionFeedback={false} onBack={() => router.replace('/member2/workout')}>
     <Text style={s.title}>Welcome{session?.user.displayName ? `, ${session.user.displayName}` : ' to FitTrack'}</Text>
     <PlanImages />
     <Text style={s.body}>{preferences ? 'Workouts selected from the latest library using your level and available time.' : 'Explore the latest workouts or set your preferences for a closer match.'}</Text>

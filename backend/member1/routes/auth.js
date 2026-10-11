@@ -85,6 +85,7 @@ function createAuthRouter({
   User = require('../models/User'),
   Admin = require('../models/Admin'),
   EmailVerification = require('../models/EmailVerification'),
+  PasswordReset = require('../models/PasswordReset'),
   SocialAuthChallenge = require('../models/SocialAuthChallenge'),
   AuthEmailLock = require('../models/AuthEmailLock'),
   bcrypt = require('bcrypt'),
@@ -127,6 +128,8 @@ function createAuthRouter({
     }
     try { return await work(); } finally { await AuthEmailLock.deleteOne({ email, token }); }
   }
+
+  require('./password-reset').registerPasswordReset(router, { User, PasswordReset, bcrypt, sendVerificationEmail, withEmailLock, userEmailFilter, currentTime, startSession });
 
   async function requireUnregisteredEmail(email) {
     if (await User.exists(userEmailFilter(email))) {
@@ -361,6 +364,7 @@ function createAuthRouter({
             passwordHash: pending.passwordHash,
             isEmailVerified: true,
             authProvider: 'local',
+            welcomePending: true,
           }], { session });
           createdAccount = created[0];
         }
@@ -407,7 +411,7 @@ function createAuthRouter({
     }
 
     // 2. Check User Collection
-    const user = await User.findOne(userEmailFilter(email)).select('+passwordHash email isEmailVerified authProvider displayName role');
+    const user = await User.findOne(userEmailFilter(email)).select('+passwordHash email isEmailVerified authProvider displayName role welcomePending sessionVersion');
     if (user) {
       if (!user.isEmailVerified) {
         throw httpError(403, 'Please verify your email before logging in.');
@@ -416,12 +420,16 @@ function createAuthRouter({
         throw httpError(401, 'Incorrect email or password.');
       }
       const session = await sessions.issue(user);
+      const firstLogin = user.welcomePending === true && (await User.updateOne(
+        { _id: user._id, welcomePending: true }, { $set: { welcomePending: false } },
+      )).modifiedCount === 1;
       emitAccountEvent('login', user);
       return res.json({
         success: true,
         message: 'Login successful.',
         user: publicUser(user),
         session,
+        firstLogin,
       });
     }
 
@@ -476,7 +484,7 @@ function createAuthRouter({
       return res.json({ success: true, message: 'Session is valid.', user: admin.authProvider ? publicUser(admin) : publicAdmin(admin) });
     }
     const user = await User.findOne({ _id: claims.sub });
-    if (!user || (user.authProvider || 'local') !== claims.provider ||
+    if (!user || (user.sessionVersion || 0) !== (claims.sessionVersion || 0) || (user.authProvider || 'local') !== claims.provider ||
         ((user.authProvider || 'local') === 'local' && !user.isEmailVerified)) {
       throw httpError(401, 'Please log in again.');
     }
@@ -573,7 +581,7 @@ function createAuthRouter({
       const user = await socialUser(provider, identity, state);
       const session = await sessions.issue(user);
       emitAccountEvent(state.created ? 'signup' : 'login', user);
-      res.json({ success: true, message: 'Login successful.', user: publicUser(user), session });
+      res.json({ success: true, message: 'Login successful.', user: publicUser(user), session, firstLogin: state.created === true });
     });
   }
 

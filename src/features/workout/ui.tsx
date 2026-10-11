@@ -29,7 +29,7 @@ export function Row({ label, value }: { label: string; value: string }) {
   return <View style={s.row}><Text style={[s.body, { flex: 1 }]}>{label}</Text><Text style={[s.smallStrong, { flex: 1, textAlign: 'right' }]}>{value}</Text></View>;
 }
 
-export function Page({ title, children, onBack, back = true, scope = 'workout', showSessionFeedback = true, showSaving = true }: { title: string; children: ReactNode; onBack?: () => void; back?: boolean; scope?: 'workout' | 'admin'; showSessionFeedback?: boolean; showSaving?: boolean }) {
+export function Page({ title, children, onBack, back = true, scope = 'workout', showSessionFeedback = true, showSaving = true, showNotifications = true }: { title: string; children: ReactNode; onBack?: () => void; back?: boolean; scope?: 'workout' | 'admin'; showSessionFeedback?: boolean; showSaving?: boolean; showNotifications?: boolean }) {
   const { error, retrySave, data, pause, busy, pending, conflict, discardConflict, recoveryFailed, retryRecovery } = useWorkout();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const unread = data.notices.filter(n => !n.read).length;
@@ -42,7 +42,7 @@ export function Page({ title, children, onBack, back = true, scope = 'workout', 
         <Text style={s.eyebrow}>{scope === 'admin' ? 'FITTRACK / ADMIN' : 'FITTRACK / TRAINING'}</Text>
         <Text accessibilityRole="header" style={s.heading}>{title}</Text>
       </View>
-      {scope === 'workout' && <Pressable accessibilityRole="button" accessibilityLabel={`Open notifications, ${unread} unread`} onPress={() => { pause(); router.navigate('/workout/notifications'); }} style={s.iconButton}>
+      {scope === 'workout' && showNotifications && <Pressable accessibilityRole="button" accessibilityLabel={`Open notifications, ${unread} unread`} onPress={() => { pause(); router.navigate('/workout/notifications'); }} style={s.iconButton}>
         <NavigationIcon name="bell" color={c.text} size={21} />
         {unread > 0 && <View style={s.dot} />}
       </Pressable>}

@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   statusTextInactive: { color: '#C62828' },
   moreButton: { padding: 8, marginLeft: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '90%', maxWidth: 560, maxHeight: '90%', backgroundColor: '#171D23', borderRadius: 12, padding: 24 },
+  modalContent: { width: '90%', maxWidth: 400, maxHeight: '90%', backgroundColor: '#171D23', borderRadius: 12, padding: 24 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, color: '#E5E7EB' },
   input: { borderWidth: 1, borderColor: '#2A333B', borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 15 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 10 },

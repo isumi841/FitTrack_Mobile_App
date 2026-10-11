@@ -1,10 +1,5 @@
-import { useAppViewport } from '@/components/layout/mobile-viewport';
-import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { useAppViewport } from "@/components/layout/mobile-viewport";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AdminStatCard } from "@/components/admin/admin-stat-card";
 import { ADMIN_COLORS } from "@/constants/admin-theme";
@@ -19,12 +14,11 @@ export default function AdminDashboardScreen() {
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
       <View style={styles.container}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Dashboard
-        </Text>
+        <Text style={[styles.title, { color: colors.text }]}>Dashboard</Text>
 
         <Text style={[styles.subtitle, { color: colors.muted }]}>
-          Manage your FitFlow system. Overview statistics and activity are sample data; exercise management uses saved records.
+          Manage your FitTrack system. Overview statistics and activity are
+          sample data; exercise management uses saved records.
         </Text>
 
         <View style={styles.stats}>
@@ -104,12 +98,7 @@ export default function AdminDashboardScreen() {
               Last 6 months
             </Text>
 
-            <View
-              style={[
-                styles.chart,
-                isMobile && styles.mobileChart,
-              ]}
-            >
+            <View style={[styles.chart, isMobile && styles.mobileChart]}>
               {[60, 90, 75, 110, 135, 160].map((height, index) => (
                 <View
                   key={index}
@@ -193,7 +182,7 @@ export default function AdminDashboardScreen() {
 
           <Activity
             title="New user registered"
-            description="A new member joined FitFlow."
+            description="A new member joined FitTrack."
             accent={colors.accent}
             text={colors.text}
             muted={colors.muted}

@@ -12,6 +12,7 @@ import { type SocialProvider } from '@/components/member1/SocialAuthButton';
 import { AuthApiError, resendOtp, signup, verifyEmail } from '@/features/member1/auth/auth-api';
 import { clearOtpCooldown, getOtpCooldown, startOtpCooldown } from '@/features/member1/auth/otp-cooldown';
 import { saveAuthSession } from '@/features/member1/auth/session';
+import { authDestination } from '@/features/member1/auth/destination';
 import { useSocialLogin } from '@/features/member1/auth/social-login';
 import { AUTH_VALIDATION_MESSAGES, getPasswordByteLength, isStrongPassword, isValidSliitEmail, normalizeEmail } from '@/features/member1/utils/validation';
 
@@ -77,7 +78,7 @@ export default function SignupScreen() {
       const result = await signup({ email, password, confirmPassword }, { signal: controller.signal });
       if ('session' in result) {
         if (controller.signal.aborted || requestRef.current !== controller) return;
-        await saveAuthSession(result);
+        await saveAuthSession({ ...result, firstLogin: true });
         if (controller.signal.aborted || requestRef.current !== controller) return;
         router.replace('/member1_onboarding_personalization/personalized-plan');
         return;
@@ -90,7 +91,16 @@ export default function SignupScreen() {
       setNow(Date.now());
       requestAnimationFrame(() => otpRef.current?.focus());
     } catch (error) {
-      if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to sign up. Please try again.');
+      if (!controller.signal.aborted) {
+        const detail = error instanceof Error ? error.message : 'Unable to sign up. Please try again.';
+        setMessage(detail);
+        if (detail.includes('already pending')) {
+          const canonicalEmail = normalizeEmail(email);
+          setPendingEmail(canonicalEmail);
+          setEmail(canonicalEmail);
+          requestAnimationFrame(() => otpRef.current?.focus());
+        }
+      }
     } finally {
       if (requestRef.current === controller) {
         requestRef.current = null;
@@ -176,7 +186,7 @@ export default function SignupScreen() {
       } else {
         // Apple/Facebook: keep existing behavior
         const result = await handleSocialLogin(provider);
-        if (result.status === 'success') router.replace('/member1_onboarding_personalization/personalized-plan');
+        if (result.status === 'success') router.replace(authDestination(result));
         else setMessage(result.message);
       }
     } finally {

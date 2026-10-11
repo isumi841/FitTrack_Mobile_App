@@ -8,6 +8,7 @@ export interface OnboardingData {
   fitnessLevel: string;
   fitnessGoal: string;
   availableTime: string | number;
+  trainingDays?: number[];
 }
 
 export async function saveOnboardingData(data: Partial<OnboardingData>) {

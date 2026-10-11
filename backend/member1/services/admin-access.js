@@ -2,7 +2,7 @@ async function findAdminAccount({ User, Admin }, claims) {
   const admin = await Admin.findOne({ _id: claims.sub });
   if (admin) return admin.role === 'admin' && claims.provider === 'local' ? admin : null;
   const user = await User.findOne({ _id: claims.sub });
-  return user && user.role === 'admin' && user.isEmailVerified &&
+  return user && (user.sessionVersion || 0) === (claims.sessionVersion || 0) && user.role === 'admin' && user.isEmailVerified &&
     (user.authProvider || 'local') === claims.provider ? user : null;
 }
 

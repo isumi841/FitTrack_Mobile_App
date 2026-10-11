@@ -3,9 +3,14 @@ import { Platform } from 'react-native';
 
 import { readSessionSuccess, type SessionSuccessResponse } from './auth-api';
 import { adoptOnboardingDraft } from '../utils/onboarding-draft';
+import { authDestination } from './destination';
 
 const STORAGE_KEY = 'fittrack.member1.session';
 let activeSession: SessionSuccessResponse | null = null;
+let welcomeSessionToken: string | null = null;
+export const canShowWelcomePlan = () => !!activeSession && activeSession.user.role !== 'admin' && welcomeSessionToken === activeSession.session.accessToken;
+export const finishWelcomePlan = () => { welcomeSessionToken = null; };
+export const signedInDestination = () => authDestination({ user: activeSession?.user ?? {}, firstLogin: canShowWelcomePlan() });
 const listeners = new Set<() => void>();
 export const getSessionSnapshot = () => activeSession;
 export function subscribeToSession(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
@@ -21,6 +26,7 @@ export async function saveAuthSession(response: SessionSuccessResponse): Promise
   }
   // Web sessions stay in memory; no bearer tokens in localStorage or URL params.
   activeSession = session;
+  welcomeSessionToken = session.firstLogin === true ? session.session.accessToken : null;
   notify();
 }
 
@@ -43,6 +49,7 @@ export async function getAuthSession(): Promise<SessionSuccessResponse | null> {
 }
 
 export async function clearAuthSession(): Promise<void> {
+  welcomeSessionToken = null;
   activeSession = null;
   notify();
   if (Platform.OS !== 'web') await SecureStore.deleteItemAsync(STORAGE_KEY);

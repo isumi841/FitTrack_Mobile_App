@@ -1,8 +1,8 @@
 import { router, usePathname } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useAdmin } from "@/features/exercises/admin-store";
 import { ADMIN_COLORS } from "@/constants/admin-theme";
+import { useAdmin } from "@/features/exercises/admin-store";
 
 type AdminSidebarProps = {
   dark?: boolean;
@@ -58,23 +58,17 @@ export function AdminSidebar({
       ]}
     >
       <View>
-        <Text
-          style={[
-            styles.logo,
-            { color: colors.text },
-          ]}
-        >
-          FitFlow
-        </Text>
+        <Text style={[styles.logo, { color: colors.text }]}>FitTrack</Text>
 
-        <Text style={[styles.adminLabel, { color: colors.accent }]}>
-          Admin
-        </Text>
+        <Text style={[styles.adminLabel, { color: colors.accent }]}>Admin</Text>
       </View>
 
       <View style={styles.menu}>
         {menuItems.map((item) => {
-          const active = pathname === item.path || (item.path === "/admin/exercises" && pathname === "/admin/exercise");
+          const active =
+            pathname === item.path ||
+            (item.path === "/admin/exercises" &&
+              pathname === "/admin/exercise");
 
           return (
             <Pressable
@@ -85,9 +79,7 @@ export function AdminSidebar({
               style={[
                 styles.menuItem,
                 active && {
-                  backgroundColor: dark
-                    ? colors.accentSoft
-                    : colors.accent,
+                  backgroundColor: dark ? colors.accentSoft : colors.accent,
                 },
               ]}
               onPress={() => {
@@ -117,13 +109,11 @@ export function AdminSidebar({
         style={styles.logoutButton}
         onPress={() => {
           void logout();
-          router.replace("/member2/workout");
+          router.replace("/member1_onboarding_personalization/login");
           onNavigate?.();
         }}
       >
-        <Text style={styles.logoutText}>
-          Logout
-        </Text>
+        <Text style={styles.logoutText}>Logout</Text>
       </Pressable>
     </View>
   );

@@ -33,7 +33,7 @@ export function createMemberIdentity({ sessions, User, Admin }, role = 'user') {
     } catch { return res.status(401).json({ error: 'Please log in again. Your session is missing or expired.' }); }
     if ((claims.role ?? 'user') !== role) return res.status(403).json({ error: role === 'admin' ? 'Admin access required.' : 'A member account is required.' });
     const account = await (role === 'admin' ? Admin : User).findOne({ _id: claims.sub });
-    if (!account || (role === 'admin' ? account.role !== 'admin'
+    if (!account || (account.sessionVersion || 0) !== (claims.sessionVersion || 0) || (role === 'admin' ? account.role !== 'admin'
       : (account.role || 'user') !== 'user' || (account.authProvider || 'local') !== claims.provider || (claims.provider === 'local' && !account.isEmailVerified))) {
       return res.status(401).json({ error: 'This account is no longer available. Please log in again.' });
     }
@@ -45,7 +45,7 @@ export function createMemberIdentity({ sessions, User, Admin }, role = 'user') {
 
 export function createMemberAuth(odm, config, { onAccountEvent } = {}) {
   const models = {};
-  for (const name of ['User', 'Admin', 'EmailVerification', 'AuthEmailLock', 'SocialAuthChallenge', 'SocialOAuthRequest', 'SocialOAuthHandoff']) {
+  for (const name of ['User', 'Admin', 'PasswordReset', 'EmailVerification', 'AuthEmailLock', 'SocialAuthChallenge', 'SocialOAuthRequest', 'SocialOAuthHandoff']) {
     const source = require(`../member1/models/${name}`);
     models[name] = odm.models[name] ?? odm.model(name, source.schema.clone(), source.collection.name);
   }

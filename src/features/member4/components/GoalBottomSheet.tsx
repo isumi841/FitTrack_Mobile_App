@@ -414,6 +414,7 @@ function GoalBottomSheetForm({
 
           onPress:
             async () => {
+              if (!editGoal) return;
               try {
                 setDeleting(
                   true,
@@ -427,6 +428,12 @@ function GoalBottomSheetForm({
               } catch (
                 error
               ) {
+                const status = (error as { status?: number })?.status;
+                const msg = error instanceof Error ? error.message : '';
+                if (status === 404 || msg.toLowerCase().includes('not found')) {
+                  onClose();
+                  return;
+                }
                 console.error(
                   'Delete goal error:',
                   error,

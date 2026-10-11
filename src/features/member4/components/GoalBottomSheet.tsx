@@ -237,6 +237,11 @@ function GoalBottomSheetForm({
   ] = useState(false);
 
   const [
+    confirmDelete,
+    setConfirmDelete,
+  ] = useState(false);
+
+  const [
     selectedType,
     setSelectedType,
   ] =
@@ -391,71 +396,32 @@ function GoalBottomSheetForm({
       return;
     }
 
-    Alert.alert(
-      'Delete goal?',
+    setConfirmDelete(true);
+  }
 
-      `Are you sure you want to delete "${editGoal.label}"?`,
-
-      [
-        {
-          text:
-            'Cancel',
-
-          style:
-            'cancel',
-        },
-
-        {
-          text:
-            'Delete',
-
-          style:
-            'destructive',
-
-          onPress:
-            async () => {
-              if (!editGoal) return;
-              try {
-                setDeleting(
-                  true,
-                );
-
-                await onDelete(
-                  editGoal,
-                );
-
-                onClose();
-              } catch (
-                error
-              ) {
-                const status = (error as { status?: number })?.status;
-                const msg = error instanceof Error ? error.message : '';
-                if (status === 404 || msg.toLowerCase().includes('not found')) {
-                  onClose();
-                  return;
-                }
-                console.error(
-                  'Delete goal error:',
-                  error,
-                );
-
-                Alert.alert(
-                  'Unable to delete goal',
-
-                  error instanceof
-                  Error
-                    ? error.message
-                    : 'Please try again.',
-                );
-              } finally {
-                setDeleting(
-                  false,
-                );
-              }
-            },
-        },
-      ],
-    );
+  async function handleConfirmDelete() {
+    if (!editGoal || !onDelete || deleting) return;
+    try {
+      setDeleting(true);
+      await onDelete(editGoal);
+      setConfirmDelete(false);
+      onClose();
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      const msg = error instanceof Error ? error.message : '';
+      if (status === 404 || msg.toLowerCase().includes('not found')) {
+        setConfirmDelete(false);
+        onClose();
+        return;
+      }
+      console.error('Delete goal error:', error);
+      Alert.alert(
+        'Unable to delete goal',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (!visible) {
@@ -1447,6 +1413,54 @@ function GoalBottomSheetForm({
           </ScrollView>
         </Animated.View>
       </View>
+
+      {/* DELETE GOAL CONFIRMATION DIALOG (Matches uploaded screenshot) */}
+      {confirmDelete && (
+        <View style={styles.confirmBackdrop}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss confirmation"
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              if (!deleting) setConfirmDelete(false);
+            }}
+          />
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Delete goal?</Text>
+            <Text style={styles.confirmMessage}>
+              Are you sure you want to delete &ldquo;{editGoal?.label}&rdquo;?
+            </Text>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel deletion"
+              style={({ pressed }) => [
+                styles.confirmCancelBtn,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => setConfirmDelete(false)}
+              disabled={deleting}
+            >
+              <Text style={styles.confirmCancelText}>Cancel</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Confirm delete goal"
+              style={({ pressed }) => [
+                styles.confirmDeleteBtn,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={handleConfirmDelete}
+              disabled={deleting}
+            >
+              <Text style={styles.confirmDeleteText}>
+                {deleting ? 'Deleting...' : 'Delete'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </Modal>
   );
 }
@@ -1995,5 +2009,73 @@ const styles =
 
       fontWeight:
         '700',
+    },
+
+    confirmBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 9999,
+      backgroundColor: 'rgba(0, 0, 0, 0.72)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    confirmCard: {
+      width: '100%',
+      maxWidth: 360,
+      backgroundColor: '#161C24',
+      borderRadius: 22,
+      paddingHorizontal: 22,
+      paddingTop: 24,
+      paddingBottom: 22,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.45,
+      shadowRadius: 20,
+      elevation: 24,
+    },
+    confirmTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#F4F7F6',
+      marginBottom: 10,
+    },
+    confirmMessage: {
+      fontSize: 14.5,
+      lineHeight: 22,
+      color: '#8E9AA8',
+      marginBottom: 22,
+    },
+    confirmCancelBtn: {
+      backgroundColor: '#1E252E',
+      borderRadius: 14,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    confirmCancelText: {
+      color: '#F4F7F6',
+      fontSize: 15.5,
+      fontWeight: '700',
+    },
+    confirmDeleteBtn: {
+      backgroundColor: '#2C1A20',
+      borderColor: 'rgba(244, 63, 94, 0.28)',
+      borderWidth: 1,
+      borderRadius: 14,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    confirmDeleteText: {
+      color: '#FB7185',
+      fontSize: 15.5,
+      fontWeight: '700',
     },
   });

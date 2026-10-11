@@ -86,5 +86,5 @@ export function createMember4({ models, avatar = cloudinary, env = process.env }
   router.route('/reminders').get(reminders.getReminders).post(reminders.createReminder);
   router.route('/reminders/:id').get(reminders.getReminderById).patch(reminders.updateReminder).delete(reminders.deleteReminder);
   // Workout history uses /api/member3/workout-sessions. Do not register a second Workout model.
-  return { router, initialize: async () => { for (const model of Object.values(models)) await model.createIndexes(); } };
+  return { router, models, initialize: async () => { for (const model of Object.values(models)) await model.createIndexes(); } };
 }

@@ -54,6 +54,7 @@ export interface AuthUser {
   authProvider: 'local' | 'google' | 'apple' | 'facebook';
   displayName: string | null;
   role?: 'user' | 'admin';
+  createdAt?: string;
 }
 
 export interface UserSuccessResponse {

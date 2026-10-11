@@ -18,6 +18,12 @@ export function createExerciseRepository(odm) {
     async list(workoutId) {
       return (await Model.find({ workoutId, deletedAt: { $exists: false } }).sort({ position: 1, createdAt: 1, _id: 1 }).lean()).map(clean);
     },
+    async count() {
+      return Model.countDocuments({ deletedAt: { $exists: false } });
+    },
+    async listAll() {
+      return (await Model.find({ deletedAt: { $exists: false } }).sort({ createdAt: -1 }).lean()).map(clean);
+    },
     async create(exercise) {
       const { id, ...fields } = exercise;
       try { return clean((await Model.create({ _id: id, ...fields })).toObject()); }

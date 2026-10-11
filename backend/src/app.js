@@ -34,7 +34,91 @@ export function createApp({ database, corsOrigins, repository, exerciseRepositor
 
   if (auth) app.use('/api/auth', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, auth.rateLimiter, auth.router);
   if (auth?.usersRouter) app.use('/api/users', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, auth.usersRouter);
-  if (auth && member4) app.use('/api/member4', auth.identity, member4.router);
+  if (auth && member4) {
+    if (auth.adminIdentity) {
+      app.get('/api/admin/overview', auth.adminIdentity, async (_req, res) => {
+        try {
+          let usersCount = 0;
+          let recentUsers = [];
+          if (auth.models?.User) {
+            usersCount = await auth.models.User.countDocuments();
+            recentUsers = await auth.models.User.find({}).select('displayName email createdAt').sort({ createdAt: -1 }).limit(10).lean();
+          }
+          let goalsCount = 0;
+          let activeGoalsCount = 0;
+          let recentGoals = [];
+          if (member4.models?.Goal) {
+            goalsCount = await member4.models.Goal.countDocuments();
+            activeGoalsCount = await member4.models.Goal.countDocuments({ status: { $ne: 'completed' } });
+            recentGoals = await member4.models.Goal.find({}).sort({ updatedAt: -1 }).limit(10).lean();
+          }
+          let exercisesCount = 0;
+          let recentExercises = [];
+          if (exerciseRepository?.count) {
+            exercisesCount = await exerciseRepository.count();
+          }
+          if (exerciseRepository?.listAll) {
+            recentExercises = (await exerciseRepository.listAll()).slice(0, 5);
+          }
+          res.json({
+            success: true,
+            usersCount,
+            exercisesCount,
+            goalsCount,
+            activeGoalsCount,
+            recentUsers,
+            recentGoals,
+            recentExercises,
+          });
+        } catch {
+          res.status(500).json({ success: false, message: 'Failed to load system overview.' });
+        }
+      });
+      app.get('/api/admin/exercises-count', auth.adminIdentity, async (_req, res) => {
+        try {
+          const count = exerciseRepository?.count ? await exerciseRepository.count() : 0;
+          res.json({ success: true, count });
+        } catch {
+          res.status(500).json({ success: false, message: 'Failed to count exercises.' });
+        }
+      });
+      app.get('/api/admin/goals', auth.adminIdentity, async (_req, res) => {
+        try {
+          const goals = member4.models?.Goal ? await member4.models.Goal.find({}).sort({ createdAt: -1 }).lean() : [];
+          res.json({ success: true, goals });
+        } catch {
+          res.status(500).json({ success: false, message: 'Failed to load goals.' });
+        }
+      });
+      app.post('/api/admin/goals', auth.adminIdentity, async (req, res) => {
+        try {
+          const { userId, title, goalType = 'workoutMinutes', target, current = 0, duration = 'Weekly', status = 'active' } = req.body || {};
+          if (!title || !target) return res.status(400).json({ success: false, message: 'Title and target are required.' });
+          const goal = await member4.models.Goal.create({
+            userId,
+            title: String(title).trim(),
+            goalType,
+            target: Number(target),
+            current: Number(current),
+            duration,
+            status: Number(current) >= Number(target) ? 'completed' : status,
+          });
+          res.status(201).json({ success: true, goal });
+        } catch (err) {
+          res.status(400).json({ success: false, message: err?.message || 'Failed to create goal.' });
+        }
+      });
+      app.delete('/api/admin/goals/:id', auth.adminIdentity, async (req, res) => {
+        try {
+          await member4.models.Goal.findByIdAndDelete(req.params.id);
+          res.json({ success: true, message: 'Goal deleted.' });
+        } catch {
+          res.status(500).json({ success: false, message: 'Failed to delete goal.' });
+        }
+      });
+    }
+    app.use('/api/member4', auth.identity, member4.router);
+  }
   const routeConfig = auth ? { ...config, devAuthEnabled: false, adminDevAuthEnabled: false } : config;
   const notificationRouter = notifications ? notificationRoutes({ notifications, identity: auth?.identity ?? identity, RequestError }) : null;
   if (notificationRouter) {

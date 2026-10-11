@@ -56,6 +56,7 @@ export function createMemberAuth(odm, config, { onAccountEvent } = {}) {
   const router = createAuthRouter({ ...models, config, ...email, onAccountEvent, sessionService: sessions, socialVerifier: verifier, oauthBroker });
   const usersRouter = createUsersRouter({ ...models, requireAdmin: createAdminIdentity({ sessions, ...models }) });
   return { router, usersRouter, rateLimiter: createAuthRateLimiter(),
+    models,
     identity: createMemberIdentity({ sessions, ...models }), adminIdentity: createMemberIdentity({ sessions, ...models }, 'admin'),
     async initialize() {
       // Add required unique/TTL indexes without dropping existing team indexes.

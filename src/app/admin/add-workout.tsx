@@ -1,3 +1,8 @@
+// Adapted from admin_workout_management 8cebec0. Shared layout and authenticated API.
+import {
+  ADMIN_WORKOUT_API as API_URL,
+  adminWorkoutRequest,
+} from "@/features/exercises/admin-workout-api";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -8,7 +13,6 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
   type KeyboardTypeOptions,
 } from "react-native";
 
@@ -19,8 +23,6 @@ import {
 } from "@/components/admin/workout-form-ui";
 import { ADMIN_COLORS } from "@/constants/admin-theme";
 
-const API_URL = "http://localhost:5000/api/member2/workouts";
-
 const CATEGORY_OPTIONS = [
   "Full Body",
   "Strength",
@@ -28,23 +30,11 @@ const CATEGORY_OPTIONS = [
   "Stretching",
   "Mobility",
   "Core",
-  "Other",
 ];
 
-const DIFFICULTY_OPTIONS = [
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "Other",
-];
+const DIFFICULTY_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 
-const DURATION_OPTIONS = [
-  "5",
-  "15",
-  "30",
-  "45",
-  "Other",
-];
+const DURATION_OPTIONS = ["5", "15", "30", "45", "Other"];
 
 const EQUIPMENT_OPTIONS = [
   "No equipment",
@@ -55,7 +45,7 @@ const EQUIPMENT_OPTIONS = [
 ];
 
 export default function AddWorkoutScreen() {
-  const dark = useColorScheme() === "dark";
+  const dark = true;
   const colors = dark ? ADMIN_COLORS.dark : ADMIN_COLORS.light;
 
   const [title, setTitle] = useState("");
@@ -136,8 +126,9 @@ export default function AddWorkoutScreen() {
 
     if (
       !finalDuration ||
-      Number.isNaN(Number(finalDuration)) ||
-      Number(finalDuration) <= 0
+      !Number.isSafeInteger(Number(finalDuration)) ||
+      Number(finalDuration) <= 0 ||
+      Number(finalDuration) > 1440
     ) {
       showFormError("Please enter a valid duration in minutes.");
       return;
@@ -174,7 +165,7 @@ export default function AddWorkoutScreen() {
       savingRef.current = true;
       setSaving(true);
 
-      const response = await fetch(API_URL, {
+      const response = await adminWorkoutRequest(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -237,7 +228,7 @@ export default function AddWorkoutScreen() {
       void createWorkout();
     } else if (modal === "success") {
       setModal(null);
-      router.replace("/admin/workouts" as never);
+      router.replace("/admin/workouts");
     } else if (modal === "error") {
       setModal(null);
     }
@@ -258,7 +249,8 @@ export default function AddWorkoutScreen() {
       >
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            accessibilityRole="button"
+            onPress={() => router.replace("/admin/workouts")}
             style={[
               styles.backButton,
               {
@@ -267,9 +259,7 @@ export default function AddWorkoutScreen() {
               },
             ]}
           >
-            <Text style={[styles.backText, { color: colors.text }]}>
-              ←
-            </Text>
+            <Text style={[styles.backText, { color: colors.text }]}>←</Text>
           </Pressable>
 
           <View style={styles.headerText}>
@@ -278,7 +268,7 @@ export default function AddWorkoutScreen() {
             </Text>
 
             <Text style={[styles.subtitle, { color: colors.muted }]}>
-              Create a new workout for FitFlow users.
+              Create a new workout for FitTrack users.
             </Text>
           </View>
         </View>
@@ -479,6 +469,7 @@ export default function AddWorkoutScreen() {
           </View>
 
           <Pressable
+            accessibilityRole="button"
             disabled={saving}
             onPress={validateWorkout}
             style={[
@@ -541,11 +532,10 @@ function FormInput({
 }) {
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: colors.text }]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
 
       <TextInput
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -593,11 +583,10 @@ function DropdownField({
 
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: colors.text }]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
 
       <Pressable
+        accessibilityRole="button"
         onPress={() => setOpen((current) => !current)}
         style={[
           styles.dropdownButton,
@@ -638,6 +627,7 @@ function DropdownField({
 
             return (
               <Pressable
+                accessibilityRole="button"
                 key={option}
                 onPress={() => {
                   onSelect(option);

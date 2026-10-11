@@ -1,16 +1,13 @@
+import { useAppViewport } from '@/components/layout/mobile-viewport';
 import { ReactNode, useEffect, useState } from "react";
 import {
     Animated,
     Platform,
     Pressable,
-    ScrollView,
     StyleSheet,
-    useColorScheme,
     View,
-    useWindowDimensions,
 } from "react-native";
 import {
-  SafeAreaProvider,
   SafeAreaView,
 } from "react-native-safe-area-context";
 
@@ -27,9 +24,8 @@ const MOBILE_BREAKPOINT = 600;
 export function AdminLayout({
   children,
 }: AdminLayoutProps) {
-  const colorScheme = useColorScheme();
-  const dark = colorScheme === "dark";
-  const { width } = useWindowDimensions();
+  const dark = true;
+  const { width } = useAppViewport();
   const isMobile = width < MOBILE_BREAKPOINT;
   const drawerWidth = Math.min(width * 0.82, 320);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -58,7 +54,6 @@ export function AdminLayout({
   }, [drawerOpen, drawerTranslateX, drawerWidth]);
 
   return (
-    <SafeAreaProvider>
       <SafeAreaView
         edges={["top", "right", "bottom", "left"]}
         style={[
@@ -81,14 +76,7 @@ export function AdminLayout({
               showMenu={isMobile}
               onMenuPress={() => setDrawerOpen(true)}
             />
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {children}
-            </ScrollView>
+            <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
           </View>
 
           {isMobile && drawerOpen && (
@@ -119,7 +107,6 @@ export function AdminLayout({
           )}
         </View>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

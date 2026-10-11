@@ -1,34 +1,27 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  Slot,
-  ThemeProvider,
-  usePathname,
-} from "expo-router";
-
-import * as SplashScreen from "expo-splash-screen";
-import { useColorScheme } from "react-native";
-
-import { AnimatedSplashOverlay } from "@/components/animated-icon";
-import AppTabs from "@/components/app-tabs";
-
-SplashScreen.preventAutoHideAsync();
-
+import '@/global.css';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { FITTRACK_COLORS as C } from '@/constants/fittrack-theme';
+import { WorkoutProvider } from '@/features/workout/store';
+import { DiscoveryProvider } from '@/features/discovery/store';
+import { AdminProvider } from '@/features/exercises/admin-store';
+import { AuthProvider, useAuth } from '@/features/member1/auth/provider';
+import { ThemeProvider as OnboardingThemeProvider } from '@/features/member1/theme';
+import { Member4ProfileProvider } from '@/features/member4/context/Member4ProfileContext';
+import type { ReactNode } from 'react';
+import { MobileViewport } from '@/components/layout/mobile-viewport';
+const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, primary: C.accent, background: C.bg, card: C.surface, text: C.text, border: C.border, notification: C.accent } };
+// Shared providers preserve the current session when moving between selection and guidance.
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const pathname = usePathname();
-
-  const isAdminRoute =
-    pathname === "/admin" ||
-    pathname.startsWith("/admin/");
-
-  return (
-    <ThemeProvider
-      value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-    >
-      <AnimatedSplashOverlay />
-
-      {isAdminRoute ? <Slot /> : <AppTabs />}
-    </ThemeProvider>
-  );
+  useEffect(() => { void SplashScreen.hideAsync(); }, []);
+  return <MobileViewport><SafeAreaProvider><AuthProvider><OnboardingThemeProvider><AccountProviders><ThemeProvider value={theme}><StatusBar style="light" /><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} /></ThemeProvider></AccountProviders></OnboardingThemeProvider></AuthProvider></SafeAreaProvider></MobileViewport>;
+}
+function AccountProviders({ children }: { children: ReactNode }) {
+  const { session, ready } = useAuth();
+  if (!ready) return null;
+  const account = session ? `${session.user.role ?? 'user'}:${session.user.id}` : 'signed-out';
+  return <WorkoutProvider key={account}><DiscoveryProvider><AdminProvider><Member4ProfileProvider key={account}>{children}</Member4ProfileProvider></AdminProvider></DiscoveryProvider></WorkoutProvider>;
 }

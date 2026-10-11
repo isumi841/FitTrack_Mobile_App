@@ -21,7 +21,7 @@ export function createMember4Models(odm) {
   return models;
 }
 
-export function createMember4({ models, avatar = cloudinary, env = process.env }) {
+export function createMember4({ models, avatar = cloudinary, env = process.env, notifications }) {
   const isCloudinaryReady = () => {
     if (env !== process.env) {
       const ok = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'].every(key => env[key]?.trim());
@@ -77,7 +77,7 @@ export function createMember4({ models, avatar = cloudinary, env = process.env }
   });
   const goals = goalControllers(models);
   const profile = profileControllers({ ...models, cloudinary: avatar });
-  const reminders = reminderControllers(models);
+  const reminders = reminderControllers({ ...models, notifications });
   router.route('/goals').get(goals.getGoals).post(goals.createGoal);
   router.route('/goals/:id').get(goals.getGoalById).patch(goals.updateGoal).delete(goals.deleteGoal);
   router.route('/profile').get(profile.getProfile).post(profile.createProfile).patch(profile.updateProfile).delete(profile.deleteProfile);

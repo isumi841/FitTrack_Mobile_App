@@ -19,7 +19,7 @@ export function createDatabase({ odm = new mongoose.Mongoose(), logger = console
   return {
     createMemberAuth: (config, options) => createMemberAuth(odm, config, options),
     createNotifications: () => createNotifications(odm),
-    createMember4: () => createMember4({ models: createMember4Models(odm) }),
+    createMember4: options => createMember4({ models: createMember4Models(odm), ...options }),
     createSessionRepository: () => createSessionRepository(odm),
     createExerciseRepository: () => createExerciseRepository(odm),
     createWorkoutRepository: databaseName => createWorkoutRepository(odm, databaseName),

@@ -42,6 +42,7 @@ import {
 } from '@/features/member4/services/member4Service';
 
 import { useM4Theme } from '@/features/member4/hooks/useM4Theme';
+import { useWorkout } from '@/features/workout/store';
 
 type DayCode =
   ApiReminderDay;
@@ -181,6 +182,8 @@ function ReminderPulse({
 export default function WorkoutReminderScreen() {
  const Alert = useMember4Alert();
   const c = useM4Theme();
+  const { addReminderNotice } = useWorkout();
+  const [sendingTest, setSendingTest] = useState(false);
 
   const [
   reminderId,
@@ -578,14 +581,28 @@ useEffect(() => {
       response.data,
     );
 
+    if (response.data.enabled) {
+      await addReminderNotice({
+        label: response.data.label || payload.label,
+        time: response.data.time,
+        days: response.data.days,
+      });
+    }
+
     Alert.alert(
       creating
         ? 'Reminder created'
         : 'Reminder updated',
 
       response.data.enabled
-        ? `Your reminder preference is saved for ${response.data.time}.`
+        ? `Your reminder is saved for ${response.data.time} and delivered to your Notifications.`
         : 'Your workout reminder has been paused.',
+      [
+        { text: 'OK', style: 'default' },
+        ...(response.data.enabled
+          ? [{ text: 'View Notifications', onPress: () => router.push('/workout/notifications') }]
+          : []),
+      ],
     );
   } catch (error) {
     console.error(
@@ -603,6 +620,31 @@ useEffect(() => {
     setSavingReminder(
       false,
     );
+  }
+}
+
+async function handleSendTestNotification() {
+  if (sendingTest) return;
+  try {
+    setSendingTest(true);
+    await addReminderNotice({
+      label: 'Workout reminder',
+      time: selectedTime,
+      days: selectedDays,
+    });
+    Alert.alert(
+      'Reminder Sent!',
+      `A workout reminder notification for ${selectedTime} has been sent to your Notifications screen.`,
+      [
+        { text: 'Later', style: 'cancel' },
+        { text: 'View Notifications', onPress: () => router.push('/workout/notifications') },
+      ],
+    );
+  } catch (error) {
+    console.error('Test notification error:', error);
+    Alert.alert('Error', 'Unable to send reminder notification.');
+  } finally {
+    setSendingTest(false);
   }
 }
 
@@ -739,7 +781,7 @@ function handleDeleteReminder() {
 
   return (
     <M4Screen>
-      <Text style={{ color: c.muted, padding: 12 }}>Save your workout schedule here. Device notifications are not connected yet.</Text>
+      <Text style={{ color: c.teal, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2, fontSize: 13, fontWeight: '600' }}>Active workout reminders are sent directly to your Notifications inbox.</Text>
       {/* HEADER */}
 
       <View
@@ -794,45 +836,65 @@ function handleDeleteReminder() {
           </Text>
         </View>
 
-        <ProfilePressable
-          label="Save reminder"
-          onPress={() => {
-              if (!canSave) {
-                return;
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <ProfilePressable
+            label="Open notifications"
+            onPress={() => router.push('/workout/notifications')}
+            style={[
+              styles.headerButton,
+              {
+                backgroundColor: c.cardBg,
+                borderColor: c.cardBdr,
+              },
+            ]}
+          >
+            <FitnessIcon
+              name="bell"
+              size={18}
+              color={c.teal}
+            />
+          </ProfilePressable>
+
+          <ProfilePressable
+            label="Save reminder"
+            onPress={() => {
+                if (!canSave) {
+                  return;
+                }
+
+                void handleSave();
+              }}
+            style={[
+              styles.headerSaveButton,
+              {
+                backgroundColor:
+                  canSave
+                    ? c.teal
+                    : c.surface,
+
+                borderColor:
+                  canSave
+                    ? c.teal
+                    : c.border,
+
+                opacity:
+                  canSave
+                    ? 1
+                    : 0.55,
+              },
+            ]}
+          >
+            <FitnessIcon
+              name="check"
+              size={18}
+              color={
+                canSave
+                  ? '#07130F'
+                  : c.muted
               }
-
-              void handleSave();
-            }}
-          style={[
-            styles.headerSaveButton,
-            {
-              backgroundColor:
-                canSave
-                  ? c.teal
-                  : c.surface,
-
-              borderColor:
-                canSave
-                  ? c.teal
-                  : c.border,
-
-              opacity:
-                canSave
-                  ? 1
-                  : 0.55,
-            },
-          ]}
-        >
-          <FitnessIcon
-            name="check"
-            size={18}
-            color={
-              canSave
-                ? '#07130F'
-                : c.muted
-            }
-          />
-        </ProfilePressable>
+            />
+          </ProfilePressable>
+        </View>
       </View>
 
       <ScrollView
@@ -1806,6 +1868,64 @@ function handleDeleteReminder() {
             </Text>
           </ProfilePressable>
         )}
+
+          <ProfilePressable
+            label="Send test reminder to notifications"
+            onPress={handleSendTestNotification}
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor: c.tealDim,
+                borderColor: c.teal,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                opacity: sendingTest ? 0.6 : 1,
+              },
+            ]}
+          >
+            <FitnessIcon name="clock" size={17} color={c.teal} />
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                {
+                  color: c.teal,
+                  fontWeight: '700',
+                },
+              ]}
+            >
+              {sendingTest ? 'Sending reminder…' : 'Send Test Reminder to Notifications'}
+            </Text>
+          </ProfilePressable>
+
+          <ProfilePressable
+            label="Open notifications inbox"
+            onPress={() => router.push('/workout/notifications')}
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor: c.cardBg,
+                borderColor: c.cardBdr,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              },
+            ]}
+          >
+            <FitnessIcon name="bell" size={17} color={c.text} />
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                {
+                  color: c.text,
+                },
+              ]}
+            >
+              View Notifications Screen
+            </Text>
+          </ProfilePressable>
         </ProfileReveal>
 
         <ProfileReveal delay={290}>

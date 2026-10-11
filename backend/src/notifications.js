@@ -10,7 +10,7 @@ const clip = (value, max) => String(value ?? '').trim().slice(0, max);
 export function createNotificationModel(odm) {
   const schema = new odm.Schema({
     userId: { type: odm.Schema.Types.ObjectId, required: true },
-    type: { type: String, required: true, enum: ['welcome', 'welcome_back', 'new_workout', 'new_exercise', 'workout_completed', 'workout_ended'] },
+    type: { type: String, required: true, enum: ['welcome', 'welcome_back', 'new_workout', 'new_exercise', 'workout_completed', 'workout_ended', 'workout_reminder'] },
     title: { type: String, required: true, maxlength: 120 },
     message: { type: String, required: true, maxlength: 400 },
     read: { type: Boolean, default: false },
@@ -70,6 +70,16 @@ export const messages = {
     return { ...base, type: 'workout_ended',
       title: 'Workout ended early',
       message: `You ended "${name}" early with ${sets}. Every session counts, so come back whenever you're ready.` };
+  },
+  workoutReminder: reminder => {
+    const time = reminder?.time ? ` scheduled for ${reminder.time}` : '';
+    const label = clip(reminder?.label || 'Workout reminder', 80);
+    const days = Array.isArray(reminder?.days) && reminder.days.length ? ` on ${reminder.days.join(', ')}` : '';
+    return {
+      type: 'workout_reminder',
+      title: label,
+      message: `Don't forget your workout${time}${days}! Keep pushing toward your fitness goals.`,
+    };
   },
 };
 
@@ -169,6 +179,10 @@ export function createNotificationService({ Notification, getUser, logger = cons
       const userId = userIdFromOwner(ownerId);
       if (userId) await Notification.deleteMany({ userId, sessionId: String(sessionId) });
     }),
+    workoutReminder: (userId, reminder) => safe(async () => {
+      if (!OBJECT_ID.test(userId ?? '')) return;
+      await create(userId, messages.workoutReminder(reminder));
+    }),
     list: async userId => {
       const records = await Notification.find({ userId }).sort({ createdAt: -1, _id: -1 }).limit(MAX_PER_USER).lean().exec();
       return records.map(publicNotification);
@@ -196,6 +210,12 @@ export function notificationRoutes({ notifications, identity, RequestError }) {
   routes.get('/', async (req, res) => {
     const data = await notifications.list(owner(req));
     res.json({ notifications: data, unread: data.filter(item => !item.read).length });
+  });
+  routes.post('/reminder', async (req, res) => {
+    const userId = owner(req);
+    const reminder = req.body || {};
+    await notifications.workoutReminder(userId, reminder);
+    res.status(201).json({ success: true, message: 'Workout reminder notification sent.' });
   });
   routes.patch('/read-all', async (req, res) => { await notifications.markAllRead(owner(req)); res.status(204).end(); });
   routes.patch('/:id/read', async (req, res) => { await notifications.markRead(owner(req), target(req)); res.status(204).end(); });

@@ -29,7 +29,7 @@ function useWorkoutState() {
   const [recordsVersion, setRecordsVersion] = useState(0);
   const token = owner ? account?.session.accessToken ?? '' : '';
   const credential = useRef(token);
-  credential.current = token;
+  useEffect(() => { credential.current = token; }, [token]);
   const current = useRef<Session | null>(null);
   const server = useRef<Session | null>(null);
   const journal = useRef<Journal | null>(null);
@@ -294,6 +294,28 @@ function useWorkoutState() {
       setPrefs(p => ({ ...p, notices: p.notices.filter(n => n.id !== id) }));
       if (credential.current) {
         void api(`/notifications/${id}`, credential.current, 'DELETE').catch(() => {});
+      }
+    },
+    addReminderNotice: async (reminder: { label?: string; time?: string; days?: string[] }) => {
+      const timeStr = reminder.time ? ` scheduled for ${reminder.time}` : '';
+      const daysStr = reminder.days && reminder.days.length ? ` on ${reminder.days.join(', ')}` : '';
+      const label = reminder.label || 'Workout reminder';
+      const optimisticNotice: Notice = {
+        id: `local-reminder-${Date.now()}`,
+        type: 'workout_reminder',
+        title: label,
+        message: `Don't forget your workout${timeStr}${daysStr}! Keep pushing toward your fitness goals.`,
+        read: false,
+        createdAt: Date.now(),
+      };
+      setPrefs(p => ({ ...p, notices: [optimisticNotice, ...p.notices] }));
+      if (credential.current) {
+        try {
+          await api('/notifications/reminder', credential.current, 'POST', reminder);
+          await fetchNotices();
+        } catch {
+          // Keep local notice if offline or API error
+        }
       }
     },
   };

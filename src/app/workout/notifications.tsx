@@ -89,63 +89,107 @@ export default function NotificationsScreen() {
           </View>
         </Card>
       )}
-      {data.notices.map((n) => (
-        <Card key={n.id} tinted={!n.read}>
-          <View style={s.row}>
-            <Text style={[s.heading, { flex: 1, paddingRight: 8 }]}>{n.title}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Badge>{n.read ? "READ" : "NEW"}</Badge>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Delete notification: ${n.title}`}
-                onPress={() => deleteNotice(n.id)}
-                hitSlop={8}
-                style={({ pressed }) => ({
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: pressed ? 'rgba(239, 68, 68, 0.22)' : 'rgba(239, 68, 68, 0.1)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                })}
-              >
-                <NavigationIcon name="trash" size={16} color="#ef4444" />
-              </Pressable>
+      {data.notices.map((n) => {
+        const isReminder = n.type === 'workout_reminder' || n.id.includes('reminder');
+        return (
+          <Card key={n.id} tinted={!n.read}>
+            <View style={s.row}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 8 }}>
+                {isReminder && <NavigationIcon name="timer" size={18} color="#38bdf8" />}
+                <Text style={[s.heading, { flex: 1 }]}>{n.title}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {isReminder && (
+                  <View style={{
+                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(56, 189, 248, 0.3)',
+                  }}>
+                    <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: '700' }}>REMINDER</Text>
+                  </View>
+                )}
+                <Badge>{n.read ? "READ" : "NEW"}</Badge>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete notification: ${n.title}`}
+                  onPress={() => deleteNotice(n.id)}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: pressed ? 'rgba(239, 68, 68, 0.22)' : 'rgba(239, 68, 68, 0.1)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  })}
+                >
+                  <NavigationIcon name="trash" size={16} color="#ef4444" />
+                </Pressable>
+              </View>
             </View>
-          </View>
-          <Text style={s.body}>{n.message}</Text>
-          <Text style={s.label}>{new Date(n.createdAt).toLocaleString()}</Text>
-          {!!n.sessionId && (
-            <Button
-              title="View session summary"
-              secondary
-              onPress={() => {
-                readNotice(n.id);
-                router.push({
-                  pathname: "/workout/completed",
-                  params: { session: n.sessionId! },
-                });
-              }}
-            />
-          )}
-          {!!n.workoutId && !n.sessionId && (
-            <Button
-              title="View workout"
-              secondary
-              onPress={() => {
-                readNotice(n.id);
-                router.push({
-                  pathname: "/workout/details",
-                  params: { workoutId: n.workoutId! },
-                });
-              }}
-            />
-          )}
-          {!n.read && (
-            <Button title="✓ Mark as read" onPress={() => readNotice(n.id)} />
-          )}
-        </Card>
-      ))}
+            <Text style={s.body}>{n.message}</Text>
+            <Text style={s.label}>{new Date(n.createdAt).toLocaleString()}</Text>
+            {isReminder && (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Start workout"
+                    onPress={() => {
+                      readNotice(n.id);
+                      router.push('/member2/workout');
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title="Settings"
+                    secondary
+                    onPress={() => {
+                      readNotice(n.id);
+                      router.push('/member4/workout-reminder');
+                    }}
+                  />
+                </View>
+              </View>
+            )}
+            {!!n.sessionId && (
+              <Button
+                title="View session summary"
+                secondary
+                onPress={() => {
+                  readNotice(n.id);
+                  router.push({
+                    pathname: "/workout/completed",
+                    params: { session: n.sessionId! },
+                  });
+                }}
+              />
+            )}
+            {!!n.workoutId && !n.sessionId && (
+              <Button
+                title="View workout"
+                secondary
+                onPress={() => {
+                  readNotice(n.id);
+                  router.push({
+                    pathname: "/workout/details",
+                    params: { workoutId: n.workoutId! },
+                  });
+                }}
+              />
+            )}
+            {!n.read && !isReminder && (
+              <Button title="✓ Mark as read" onPress={() => readNotice(n.id)} />
+            )}
+            {!n.read && isReminder && (
+              <Button title="✓ Mark as read" secondary onPress={() => readNotice(n.id)} />
+            )}
+          </Card>
+        );
+      })}
     </Page>
   );
 }

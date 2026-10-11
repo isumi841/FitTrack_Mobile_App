@@ -53,7 +53,7 @@ export function createService({ config, database, logger = console, forceExit = 
         if ((config.auth || config.adminDevAuthEnabled) && exerciseRepository) await exerciseRepository.initialize();
         if (stopping) return;
         const workoutRepository = database.createWorkoutRepository?.(config.workoutDatabase);
-        const member4 = auth ? database.createMember4?.() : undefined;
+        const member4 = auth ? database.createMember4?.({ notifications }) : undefined;
         if (member4) await member4.initialize();
         if (stopping) return;
         const app = createApp({ database, repository, exerciseRepository, workoutRepository, member4, notifications, auth, config, corsOrigins: config.corsOrigins, isStopping: () => stopping });

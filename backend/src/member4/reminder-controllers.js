@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-export function reminderControllers({ WorkoutReminder }) {
+export function reminderControllers({ WorkoutReminder, notifications }) {
 
 
 const VALID_DAYS = [
@@ -126,6 +126,10 @@ async function createReminder(
 
         label,
       });
+
+    if (enabled && notifications?.workoutReminder) {
+      notifications.workoutReminder(req.user.id, reminder);
+    }
 
     return res.status(201).json({
       success: true,
@@ -393,6 +397,10 @@ async function updateReminder(
     }
 
     await reminder.save();
+
+    if (reminder.enabled && notifications?.workoutReminder) {
+      notifications.workoutReminder(req.user.id, reminder);
+    }
 
     return res.status(200).json({
       success: true,

@@ -1,5 +1,6 @@
 import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { MobileModal as Modal } from "@/components/layout/mobile-viewport";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export type WorkoutFormColors = {
   background: string;

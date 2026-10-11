@@ -1,8 +1,9 @@
+// Adapted from admin_workout_management 8cebec0. Shared layout and authenticated API.
+import { ADMIN_WORKOUT_API as API_URL, adminWorkoutRequest } from "@/features/exercises/admin-workout-api";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,6 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
 } from "react-native";
 
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/components/admin/workout-form-ui";
 import { ADMIN_COLORS } from "@/constants/admin-theme";
 
-const API_URL = "http://localhost:5000/api/member2/workouts";
+
 
 const CATEGORY_OPTIONS = [
   "Full Body",
@@ -29,14 +29,12 @@ const CATEGORY_OPTIONS = [
   "Stretching",
   "Mobility",
   "Core",
-  "Other",
 ];
 
 const DIFFICULTY_OPTIONS = [
   "Beginner",
   "Intermediate",
   "Advanced",
-  "Other",
 ];
 
 const DURATION_OPTIONS = [
@@ -59,9 +57,12 @@ export default function EditWorkoutScreen() {
   const params = useLocalSearchParams();
   const id = typeof params.id === "string" ? params.id : "";
 
-  const dark = useColorScheme() === "dark";
+  const dark = true;
   const colors = dark ? ADMIN_COLORS.dark : ADMIN_COLORS.light;
 
+  const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const savingRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -84,7 +85,9 @@ export default function EditWorkoutScreen() {
 
   const loadWorkout = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/${id}`);
+      setLoading(true);
+      setLoaded(false);
+      const response = await adminWorkoutRequest(`${API_URL}/admin/${id}`);
       const result = await response.json();
 
       if (!response.ok || !result.success) {
@@ -128,10 +131,12 @@ export default function EditWorkoutScreen() {
 
       setLowImpact(workout.lowImpact ?? false);
       setActive(workout.active !== false);
+      setLoaded(true);
+      setError("");
     } catch (error) {
       console.error("Load workout error:", error);
 
-      Alert.alert("Error", "Unable to load workout.");
+      setError(error instanceof Error ? error.message : "Unable to load workout.");
     } finally {
       setLoading(false);
     }
@@ -139,8 +144,7 @@ export default function EditWorkoutScreen() {
 
   useEffect(() => {
     if (!id) {
-      Alert.alert("Error", "Workout ID is missing.");
-      router.back();
+      router.replace("/admin/workouts");
       return;
     }
 
@@ -161,36 +165,36 @@ export default function EditWorkoutScreen() {
       equipment === "Other" ? customEquipment.trim() : equipment;
 
     if (!title.trim()) {
-      Alert.alert("Validation", "Workout title is required.");
+      setError("Workout title is required.");
       return;
     }
 
     if (!description.trim()) {
-      Alert.alert("Validation", "Description is required.");
+      setError("Description is required.");
       return;
     }
 
     if (!finalCategory) {
-      Alert.alert("Validation", "Category is required.");
+      setError("Category is required.");
       return;
     }
 
     if (!finalDifficulty) {
-      Alert.alert("Validation", "Difficulty is required.");
+      setError("Difficulty is required.");
       return;
     }
 
     if (
       !finalDuration ||
-      Number.isNaN(Number(finalDuration)) ||
-      Number(finalDuration) <= 0
+      !Number.isSafeInteger(Number(finalDuration)) ||
+      Number(finalDuration) <= 0 || Number(finalDuration) > 1440
     ) {
-      Alert.alert("Validation", "Enter a valid duration.");
+      setError("Enter a valid duration.");
       return;
     }
 
     if (!finalEquipment) {
-      Alert.alert("Validation", "Equipment is required.");
+      setError("Equipment is required.");
       return;
     }
 
@@ -198,6 +202,8 @@ export default function EditWorkoutScreen() {
   };
 
   const updateWorkout = async () => {
+    if (savingRef.current || !loaded) return;
+    savingRef.current = true;
     const finalCategory =
       category === "Other" ? customCategory.trim() : category;
     const finalDifficulty =
@@ -210,7 +216,7 @@ export default function EditWorkoutScreen() {
     try {
       setSaving(true);
 
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await adminWorkoutRequest(`${API_URL}/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -238,8 +244,9 @@ export default function EditWorkoutScreen() {
       console.error("Update workout error:", error);
       setModal(null);
 
-      Alert.alert("Error", "Unable to update workout.");
+      setError(error instanceof Error ? error.message : "Unable to update workout.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -249,7 +256,7 @@ export default function EditWorkoutScreen() {
       void updateWorkout();
     } else if (modal === "success") {
       setModal(null);
-      router.replace("/admin/workouts" as never);
+      router.replace("/admin/workouts");
     }
   };
 
@@ -266,6 +273,7 @@ export default function EditWorkoutScreen() {
     );
   }
 
+  if (!loaded) return <View style={{ padding: 20, gap: 16 }}><Text accessibilityRole="alert" style={{ color: colors.text }}>{error}</Text><Pressable accessibilityRole="button" onPress={() => { void loadWorkout(); }}><Text style={{ color: colors.accent }}>Retry loading workout</Text></Pressable></View>;
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
@@ -273,9 +281,11 @@ export default function EditWorkoutScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.page}
       >
+        {!!error && <Text accessibilityRole="alert" style={{ color: "#ef7373", paddingVertical: 12 }}>{error}</Text>}
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            accessibilityRole="button"
+            onPress={() => router.replace("/admin/workouts")}
             style={[
               styles.backButton,
               {
@@ -430,6 +440,7 @@ export default function EditWorkoutScreen() {
           </View>
 
           <Pressable
+            accessibilityRole="button"
             disabled={saving}
             onPress={validateWorkout}
             style={[
@@ -458,7 +469,7 @@ export default function EditWorkoutScreen() {
         }
         colors={colors}
         dark={dark}
-        onCancel={() => setModal(null)}
+        onCancel={() => { if (!saving) setModal(null); }}
         onConfirm={handleModalConfirm}
       />
     </View>
@@ -485,6 +496,7 @@ function FormInput({
       </Text>
 
       <TextInput
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
         multiline={multiline}
@@ -526,6 +538,7 @@ function DropdownField({
       </Text>
 
       <Pressable
+            accessibilityRole="button"
         onPress={() => setOpen(!open)}
         style={[
           styles.dropdown,
@@ -556,6 +569,7 @@ function DropdownField({
         >
           {options.map((option) => (
             <Pressable
+            accessibilityRole="button"
               key={option}
               style={styles.option}
               onPress={() => {

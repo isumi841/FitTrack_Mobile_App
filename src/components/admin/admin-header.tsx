@@ -6,6 +6,7 @@ import {
 } from "react-native";
 
 import { ADMIN_COLORS } from "@/constants/admin-theme";
+import { router } from 'expo-router';
 
 type AdminHeaderProps = {
   dark?: boolean;
@@ -66,7 +67,7 @@ export function AdminHeader({
               { color: colors.muted },
             ]}
           >
-            Good Morning 👋
+            Welcome back
           </Text>
 
           <Text
@@ -80,7 +81,10 @@ export function AdminHeader({
         </View>
       </View>
 
-      <View
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open admin profile"
+        onPress={() => router.push('/admin/profile')}
         style={[
           styles.avatar,
           {
@@ -91,7 +95,7 @@ export function AdminHeader({
         <Text style={styles.avatarText}>
           A
         </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }

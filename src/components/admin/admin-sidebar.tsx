@@ -2,6 +2,7 @@ import { router, usePathname } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ADMIN_COLORS } from "@/constants/admin-theme";
+import { useAdmin } from "@/features/exercises/admin-store";
 
 type AdminSidebarProps = {
   dark?: boolean;
@@ -34,7 +35,7 @@ const menuItems = [
     label: "Settings",
     path: "/admin/settings",
   },
-];
+] as const;
 
 export function AdminSidebar({
   dark = false,
@@ -42,6 +43,7 @@ export function AdminSidebar({
   onNavigate,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { logout } = useAdmin();
   const colors = dark ? ADMIN_COLORS.dark : ADMIN_COLORS.light;
 
   return (
@@ -56,37 +58,32 @@ export function AdminSidebar({
       ]}
     >
       <View>
-        <Text
-          style={[
-            styles.logo,
-            { color: colors.text },
-          ]}
-        >
-          FitFlow
-        </Text>
+        <Text style={[styles.logo, { color: colors.text }]}>FitTrack</Text>
 
-        <Text style={[styles.adminLabel, { color: colors.accent }]}>
-          Admin
-        </Text>
+        <Text style={[styles.adminLabel, { color: colors.accent }]}>Admin</Text>
       </View>
 
       <View style={styles.menu}>
         {menuItems.map((item) => {
-          const active = pathname === item.path;
+          const active =
+            pathname === item.path ||
+            (item.path === "/admin/exercises" &&
+              pathname === "/admin/exercise");
 
           return (
             <Pressable
               key={item.path}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              accessibilityState={{ selected: active }}
               style={[
                 styles.menuItem,
                 active && {
-                  backgroundColor: dark
-                    ? colors.accentSoft
-                    : colors.accent,
+                  backgroundColor: dark ? colors.accentSoft : colors.accent,
                 },
               ]}
               onPress={() => {
-                router.push(item.path as never)
+                router.navigate(item.path);
                 onNavigate?.();
               }}
             >
@@ -107,17 +104,16 @@ export function AdminSidebar({
       </View>
 
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Log out of admin dashboard"
         style={styles.logoutButton}
         onPress={() => {
-          // Temporary logout action.
-          // Real admin authentication will be connected later.
-          router.replace("/");
+          void logout();
+          router.replace("/member1_onboarding_personalization/login");
           onNavigate?.();
         }}
       >
-        <Text style={styles.logoutText}>
-          Logout
-        </Text>
+        <Text style={styles.logoutText}>Logout</Text>
       </Pressable>
     </View>
   );

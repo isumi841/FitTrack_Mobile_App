@@ -115,6 +115,51 @@ Start the backend using the script configured in its `package.json`.
 
 **Note:** Never commit `.env` files, database credentials, or API secrets to GitHub.
 
+## Integrated App Setup
+
+Routes live in `src/app/`. The combined app includes authentication and onboarding,
+workout discovery and guided sessions, admin management, and Member 4 profiles,
+goals, progress, and reminders.
+
+The integrated frontend uses `backend/` for its authenticated APIs. The original
+`server/` workout service is also retained in this repository. These are separate
+services; starting `server/` alone does not provide the integrated app's authentication,
+exercise, session, or profile APIs.
+
+From the repository root, install the integrated backend dependencies and start it
+after configuring its private `.env` file:
+
+```powershell
+npm.cmd --prefix backend ci
+if (-not (Test-Path -LiteralPath backend/.env)) {
+    Copy-Item -LiteralPath backend/.env.example -Destination backend/.env
+}
+# Configure backend/.env before starting the service.
+npm.cmd --prefix backend run dev
+```
+
+Set `EXPO_PUBLIC_API_URL` in the root `.env.local` to the backend address reachable
+from your device. See the root `.env.example` and [backend setup](backend/README.md)
+for configuration. Store real credentials only in private environment files;
+`.env.example` files must contain empty values or placeholders.
+
+Integration references:
+
+- [Authentication and onboarding](docs/MEMBER1_AUTH_INTEGRATION.md)
+- [Admin dashboard](docs/ADMIN_DASHBOARD_INTEGRATION.md)
+- [Exercise management](docs/EXERCISE_MANAGEMENT.md)
+- [Workout backend](docs/WORKOUT_BACKEND_INTEGRATION.md)
+- [Workout selection](docs/WORKOUT_SELECTION_INTEGRATION.md)
+- [Guided sessions](docs/MEMBER3_HANDOFF.md)
+- [Profiles, goals, and progress](docs/MEMBER4_INTEGRATION.md)
+
+Run the frontend checks from the repository root:
+
+```powershell
+npx.cmd expo lint
+npx.cmd tsc --noEmit
+```
+
 ## 🧪 Testing
 
 The application is evaluated using functional and usability testing.

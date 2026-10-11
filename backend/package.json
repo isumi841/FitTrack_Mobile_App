@@ -1,0 +1,27 @@
+{
+  "name": "fittrack-member3-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend foundation for FitTrack Exercise Guidance & Active Workout",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "check": "node check.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jose": "^6.2.12",
+    "mongoose": "^9.0.0",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.14"
+  }
+}

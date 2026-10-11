@@ -1,7 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
 import { View } from 'react-native';
 import { useAuth } from '@/features/member1/auth/provider';
-import { Member4ProfileProvider } from '@/features/member4/context/Member4ProfileContext';
 import { Member4ActivityProvider } from '@/features/member4/context/Member4Activity';
 import { Member4Alerts } from '@/features/member4/context/Member4Alerts';
 import { AppBottomNav } from '@/components/navigation/app-bottom-nav';

@@ -48,10 +48,12 @@ export default function AdminDashboardScreen() {
   const [exercisesCount, setExercisesCount] = useState<number>(16);
   const [recentDbExercises, setRecentDbExercises] = useState<any[]>([]);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(5);
+  const [activityReferenceTime, setActivityReferenceTime] = useState(() => Date.now());
 
   // Load real users, workouts, exercises, and goals from backend
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
+    setActivityReferenceTime(Date.now());
     try {
       if (token) {
         // 1. Fetch live admin overview (includes live exercises count from MongoDB)
@@ -207,7 +209,7 @@ export default function AdminDashboardScreen() {
         id: `exercise-${ex.id}`,
         title: "Exercise active in lineup",
         description: `"${ex.name}" target set to ${ex.target || "active instruction"}.`,
-        timestamp: ex.updatedAt || ex.createdAt || Date.now() - 1800000,
+        timestamp: ex.updatedAt || ex.createdAt || activityReferenceTime - 1800000,
         type: "exercise",
         accent: "#C6FF3D",
       });
@@ -219,7 +221,7 @@ export default function AdminDashboardScreen() {
         id: `user-${u.id}`,
         title: "New user registered",
         description: `${u.displayName || u.email} joined FitTrack as ${u.role === "admin" ? "administrator" : "member"}.`,
-        timestamp: u.createdAt ? new Date(u.createdAt).getTime() : Date.now() - 3600000 * 2,
+        timestamp: u.createdAt ? new Date(u.createdAt).getTime() : activityReferenceTime - 3600000 * 2,
         type: "user",
         accent: colors.accent,
       });
@@ -243,7 +245,7 @@ export default function AdminDashboardScreen() {
         id: `workout-${w.id}`,
         title: "Workout active in library",
         description: `"${w.title}" available under ${w.category} category.`,
-        timestamp: Date.now() - 86400000 * 2,
+        timestamp: activityReferenceTime - 86400000 * 2,
         type: "workout",
         accent: "#A78BFA",
       });
@@ -251,7 +253,7 @@ export default function AdminDashboardScreen() {
 
     // Sort by timestamp descending
     return items.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
-  }, [recentDbExercises, users, goals, workouts, colors.accent]);
+  }, [recentDbExercises, users, goals, workouts, colors.accent, activityReferenceTime]);
 
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>

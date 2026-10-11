@@ -2,7 +2,6 @@ import { MobileModal } from '@/components/layout/mobile-viewport';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,7 +35,7 @@ export default function AdminGoalsScreen() {
   // Goals & Members state
   const [goals, setGoals] = useState<AdminGoalItem[]>(INITIAL_DEMO_GOALS);
   const [users, setUsers] = useState<AuthUser[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<string>('Live admin authentication active');
 
   // Filter & Search states (matching user reference mockup)
@@ -62,11 +61,11 @@ export default function AdminGoalsScreen() {
   const [formError, setFormError] = useState('');
 
   // Load real users and sync
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      if (token) {
-        const userRes = await fetchUsers(token).catch(() => ({ success: false, users: [] }));
+  const loadData = useCallback(() => {
+    if (!token) return Promise.resolve();
+    return fetchUsers(token)
+      .catch(() => ({ success: false, users: [] }))
+      .then(async (userRes) => {
         if (userRes.success && userRes.users?.length) {
           setUsers(userRes.users);
           setSyncStatus(`Synced with ${userRes.users.length} registered member accounts`);
@@ -118,16 +117,14 @@ export default function AdminGoalsScreen() {
             return [...mappedDbGoals, ...remaining];
           });
         }
-      }
-    } catch {
-      // Keep existing sample records gracefully
-    } finally {
-      setLoading(false);
-    }
+      })
+      .catch(() => {
+        // Keep existing sample records gracefully
+      });
   }, [token]);
 
   useEffect(() => {
-    void loadData();
+    void loadData().finally(() => setLoading(false));
   }, [loadData]);
 
   // Reset/Clear all filters
@@ -197,7 +194,7 @@ export default function AdminGoalsScreen() {
   }, [goals]);
 
   // Handle saving a new goal
-  const handleSaveGoal = async () => {
+  const handleSaveGoal = async (createdAt: number) => {
     if (!formName.trim()) {
       setFormError('Please enter a goal name.');
       return;
@@ -224,8 +221,8 @@ export default function AdminGoalsScreen() {
       currentNum >= targetNum ? 'Completed' : formStatus;
 
     const newGoal: AdminGoalItem = {
-      id: `local-goal-${Date.now()}`,
-      userId: matchedUser ? matchedUser.id : `user-${Date.now()}`,
+      id: `local-goal-${createdAt}`,
+      userId: matchedUser ? matchedUser.id : `user-${createdAt}`,
       userName: matchedUser?.displayName || memberName,
       userEmail: matchedUser?.email || `${memberName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
       userRole: matchedUser?.role || 'user',
@@ -237,8 +234,8 @@ export default function AdminGoalsScreen() {
       unit: formCategory === 'Endurance' ? 'km' : formCategory === 'Strength' ? 'reps' : 'days',
       duration: formDuration,
       status: calculatedStatus,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date(createdAt).toISOString(),
+      updatedAt: new Date(createdAt).toISOString(),
     };
 
     // Optionally sync with backend if admin token is present
@@ -325,7 +322,10 @@ export default function AdminGoalsScreen() {
         <TouchableOpacity
           accessibilityLabel="Refresh goals"
           style={styles.refreshBtn}
-          onPress={() => void loadData()}
+          onPress={() => {
+            setLoading(true);
+            void loadData().finally(() => setLoading(false));
+          }}
           disabled={loading}
         >
           {loading ? (
@@ -844,7 +844,7 @@ export default function AdminGoalsScreen() {
             </View>
 
             {/* Submit */}
-            <TouchableOpacity style={styles.formSubmitBtn} onPress={handleSaveGoal}>
+            <TouchableOpacity style={styles.formSubmitBtn} onPress={() => void handleSaveGoal(Date.now())}>
               <Text style={styles.formSubmitBtnText}>Create Goal Record</Text>
             </TouchableOpacity>
           </ScrollView>

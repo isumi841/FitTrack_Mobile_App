@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { Alert as NativeAlert, Platform, Pressable, StyleSheet, Text, View, type AlertButton } from 'react-native';
+import { Alert as NativeAlert, Pressable, StyleSheet, Text, View, type AlertButton } from 'react-native';
 import { MobileModal } from '@/components/layout/mobile-viewport';
 
 const Context = createContext<Pick<typeof NativeAlert, 'alert'>>(NativeAlert);
@@ -25,7 +25,7 @@ export function Member4Alerts({ children }: { children: ReactNode }) {
       }
     }
     return buttons;
-  }, [current?.buttons]);
+  }, [current]);
 
   return (
     <Context.Provider value={value}>
@@ -44,7 +44,6 @@ export function Member4Alerts({ children }: { children: ReactNode }) {
             <View style={alertStyles.buttonStack}>
               {orderedButtons.map((button, index) => {
                 const isDestructive = button.style === 'destructive' || button.text?.toLowerCase().includes('delete');
-                const isCancel = button.style === 'cancel' || button.text?.toLowerCase().includes('cancel');
 
                 return (
                   <Pressable
